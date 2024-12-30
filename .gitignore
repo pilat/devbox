@@ -1,0 +1,6 @@
+/.vscode
+.env
+.DS_Store
+config.yaml
+*.tmp
+TODO
