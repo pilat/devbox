@@ -10,6 +10,8 @@ import (
 
 var name string
 var branch string
+var sourceName string
+var targetPath string
 
 func NewInitCommand() *cobra.Command {
 	cmd := &cobra.Command{

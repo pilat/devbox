@@ -16,6 +16,10 @@ func main() {
 		cmd.NewInitCommand(),
 		cmd.NewStartCommand(),
 		cmd.NewStopCommand(),
+		cmd.NewListCommand(),
+		cmd.NewInfoCommand(),
+		cmd.NewMountCommand(),
+		cmd.NewUnmountCommand(),
 	)
 
 	err := root.Execute()

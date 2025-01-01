@@ -6,6 +6,17 @@ import (
 	"github.com/pilat/devbox/internal/docker"
 )
 
+type Config struct {
+	Name        string `yaml:"-"`
+	NetworkName string `yaml:"-"`
+	State       state  `yaml:"-"`
+
+	Sources    []SourceConfig    `yaml:"sources"`
+	Containers []ContainerConfig `yaml:"containers"`
+	Services   []ServiceConfig   `yaml:"services"`
+	Actions    []ActionConfig    `yaml:"actions"`
+}
+
 type SourceConfig struct {
 	Name           string   `yaml:"name"`
 	URL            string   `yaml:"url"`

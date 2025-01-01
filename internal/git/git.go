@@ -110,7 +110,7 @@ func (s *svc) Pull() error {
 }
 
 func (s *svc) GetInfo() (*commitInfo, error) {
-	out, err := utils.Exec("git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%an%n%ad%n%s")
+	out, err := utils.Exec("git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit info: %s", out)
 	}

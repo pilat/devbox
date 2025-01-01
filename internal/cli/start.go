@@ -37,15 +37,29 @@ func (c *cli) Start(name string) error {
 		return fmt.Errorf("failed to get home dir: %w", err)
 	}
 
-	targetFilename := filepath.Join(homeDir, appFolder, name, "devbox.yaml")
+	targetPath := filepath.Join(homeDir, appFolder, name)
 
-	c.log.Debug("Reading configuration", "file", targetFilename)
-	cfg, err := config.New(targetFilename)
+	c.log.Debug("Reading configuration", "target", targetPath)
+	cfg, err := config.New(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to read configuration: %w", err)
 	}
 
 	cfg.Name = name
+
+	// stateFile := filepath.Join(homeDir, appFolder, name, ".devboxstate")
+	// state, err := state.New(stateFile)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to read state: %w", err)
+	// }
+
+	// TODO: override mounts
+	// for _, source := range cfg.Sources {
+	// 	if localPath, ok := state.Mounts[source.Name]; ok {
+	// 		source.LocalPath = localPath
+	// 	}
+	// }
+	// _ = state
 
 	c.log.Debug("Start planner")
 	err = planner.Start(context.Background(), d, c.log, cfg)

@@ -5,11 +5,13 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pilat/devbox/internal/config"
 	"github.com/pilat/devbox/internal/docker"
 	"github.com/pilat/devbox/internal/pkg/utils"
 )
 
-func getMounts(projectName string, volumes []string) ([]docker.Mount, error) {
+func getMounts(cfg *config.Config, volumes []string) ([]docker.Mount, error) {
+	projectName := cfg.Name
 	mounts := make([]docker.Mount, 0, len(volumes))
 
 	for _, m := range volumes {
@@ -39,6 +41,19 @@ func getMounts(projectName string, volumes []string) ([]docker.Mount, error) {
 				}
 
 				projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
+
+				elems3 := strings.Split(src, "/")
+				if len(elems3) >= 3 && elems3[0] == "." && elems3[1] == "sources" {
+					sourceName := elems3[2]
+					if localPath, ok := cfg.State.Mounts[sourceName]; ok {
+						src = localPath
+
+						// if strings.HasPrefix(src, "~/") {
+						// 	src = strings.Replace(src, "~/", homedir+"/", 1)
+						// }
+					}
+				}
+
 				src = strings.Replace(src, "./", projectPath+"/", 1)
 			}
 

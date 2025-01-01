@@ -101,7 +101,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		},
 	}
 
-	mounts, err := getMounts(s.cfg.Name, s.service.Volumes)
+	mounts, err := getMounts(s.cfg, s.service.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %v", err)
 	}

@@ -31,10 +31,10 @@ func (c *cli) Stop(name string) error {
 		return fmt.Errorf("failed to get home dir: %w", err)
 	}
 
-	targetFilename := filepath.Join(homeDir, appFolder, name, "devbox.yaml")
+	targetPath := filepath.Join(homeDir, appFolder, name)
 
-	c.log.Debug("Reading configuration", "file", targetFilename)
-	cfg, err := config.New(targetFilename)
+	c.log.Debug("Reading configuration", "target", targetPath)
+	cfg, err := config.New(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to read configuration: %w", err)
 	}

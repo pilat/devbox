@@ -101,7 +101,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 		},
 	}
 
-	mounts, err := getMounts(s.cfg.Name, s.action.Volumes)
+	mounts, err := getMounts(s.cfg, s.action.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %v", err)
 	}
