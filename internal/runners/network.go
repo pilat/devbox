@@ -63,6 +63,10 @@ func (s *networkRunner) Stop(ctx context.Context) error {
 	return nil
 }
 
+func (s *networkRunner) Destroy(ctx context.Context) error {
+	return s.Stop(ctx)
+}
+
 func (s *networkRunner) start(ctx context.Context) error {
 	items, err := s.cli.ListNetworks(ctx, docker.NetworksListOptions{
 		Filters: filterLabels(s.cfg.Name, "network", s.cfg.NetworkName, s.cfg.NetworkName),

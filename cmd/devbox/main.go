@@ -12,8 +12,11 @@ func main() {
 		Use: "devbox",
 	}
 
-	root.AddCommand(cmd.NewStartCommand())
-	root.AddCommand(cmd.NewStopCommand())
+	root.AddCommand(
+		cmd.NewInitCommand(),
+		cmd.NewStartCommand(),
+		cmd.NewStopCommand(),
+	)
 
 	err := root.Execute()
 	if err != nil {

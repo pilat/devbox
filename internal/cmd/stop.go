@@ -1,65 +1,33 @@
 package cmd
 
 import (
-	"context"
-	"log/slog"
 	"os"
-	"time"
 
-	"github.com/MatusOllah/slogcolor"
-	"github.com/fatih/color"
-	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
-	"github.com/pilat/devbox/internal/planner"
+	"github.com/pilat/devbox/internal/cli"
+	"github.com/pilat/devbox/internal/log"
 	"github.com/spf13/cobra"
 )
 
 func NewStopCommand() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "stop",
-		Short: "stop application",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cmd.Println("Reading configuration...")
-			cfg, err := config.New()
+		Short: "Stop devbox project",
+		Long:  "That command will stop devbox project",
+		Run: func(cmd *cobra.Command, args []string) {
+			log := log.New()
+
+			cli := cli.New(log)
+
+			log.Info("Stop project")
+			err := cli.Stop(name)
 			if err != nil {
-				return err
+				log.Error("Failed to stop project", "error", err)
+				os.Exit(1)
 			}
-
-			cmd.Println("Getting instance...")
-
-			cmd.Println("Make sure docker is running...")
-			cli, err := docker.New()
-			if err != nil {
-				return err
-			}
-
-			defer cli.Close()
-
-			err = cli.Ping(context.Background())
-			if err != nil {
-				return err
-			}
-
-			opts := &slogcolor.Options{
-				Level:         slog.LevelDebug,
-				TimeFormat:    time.DateTime,
-				SrcFileMode:   slogcolor.ShortFile,
-				SrcFileLength: 15,
-				MsgPrefix:     color.HiWhiteString("| "),
-			}
-
-			log := slog.New(
-				slogcolor.NewHandler(os.Stderr, opts),
-			)
-
-			ctx := context.Background()
-
-			err = planner.Stop(ctx, cli, log, cfg)
-			if err != nil {
-				return err
-			}
-
-			return nil
 		},
 	}
+
+	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
+
+	return cmd
 }

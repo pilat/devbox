@@ -6,25 +6,18 @@ import (
 	"github.com/pilat/devbox/internal/docker"
 )
 
-type ConfigFile struct {
-	Content string  `yaml:"content"`
-	UID     string  `yaml:"uid"`
-	GID     string  `yaml:"gid"`
-	Mode    *uint32 `yaml:"mode"`
-}
-
 type SourceConfig struct {
 	Name           string   `yaml:"name"`
 	URL            string   `yaml:"url"`
 	Branch         string   `yaml:"branch"`
 	SparseCheckout []string `yaml:"sparseCheckout"`
 	Environment    []string `yaml:"environment"`
-	EnvFile        []string `yaml:"env_file"`
 }
 
 type ContainerConfig struct {
 	Image      string `yaml:"image"`
-	Dockerfile string `yaml:"dockerfile"`
+	Dockerfile string `yaml:"dockerfile"` // relative path to the Dockerfile
+	Context    string `yaml:"context"`    // relative path to the context
 }
 
 type ServiceHealthcheckConfig struct {

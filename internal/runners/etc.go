@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/utils"
 )
 
-func getMounts(volumes []string) ([]docker.Mount, error) {
+func getMounts(projectName string, volumes []string) ([]docker.Mount, error) {
 	mounts := make([]docker.Mount, 0, len(volumes))
 
 	for _, m := range volumes {
@@ -31,18 +32,29 @@ func getMounts(volumes []string) ([]docker.Mount, error) {
 			src := elem[0]
 			target := elem[1]
 
-			if strings.HasPrefix(src, "/") {
+			if strings.HasPrefix(src, "./") { // Relative path for configs or sources
+				homedir, err := utils.GetHomeDir()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get home dir: %v", err)
+				}
+
+				projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
+				src = strings.Replace(src, "./", projectPath+"/", 1)
+			}
+
+			if strings.HasPrefix(src, "/") { // Absolute path
 				mounts = append(mounts, docker.Mount{
 					Type:   docker.MountTypeBind,
-					Source: elem[0],
-					Target: elem[1],
+					Source: src,
+					Target: target,
 				})
 				continue
 			}
 
 			// if not, it is volume mount, find out volume name and path
 			elem2 := strings.Split(src, "/")
-			volumeName := elem2[0]
+			volumeName := fmt.Sprintf("%s-%s", projectName, elem2[0])
+
 			subpath := ""
 			if len(elem2) > 1 {
 				subpath = strings.Join(elem2[1:], "/")
@@ -70,10 +82,20 @@ func getMounts(volumes []string) ([]docker.Mount, error) {
 	return mounts, nil
 }
 
-func getEnvs(envs, env_files []string) ([]string, error) {
+func getEnvs(projectName string, envs, env_files []string) ([]string, error) {
 	env := []string{}
 	env = append(env, envs...)
 	for _, envFile := range env_files {
+		if strings.HasPrefix(envFile, "./") { // Relative path for configs or sources
+			homedir, err := utils.GetHomeDir()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get home dir: %v", err)
+			}
+
+			projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
+			envFile = strings.Replace(envFile, "./", projectPath+"/", 1)
+		}
+
 		file, err := os.ReadFile(envFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read env file: %v", err)

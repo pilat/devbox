@@ -86,7 +86,13 @@ func (s *actionRunner) Stop(ctx context.Context) error {
 	return nil
 }
 
+func (s *actionRunner) Destroy(ctx context.Context) error {
+	return s.Stop(ctx)
+}
+
 func (s *actionRunner) start(ctx context.Context) error {
+	s.log.Info("Start action")
+
 	networkConfig := &docker.NetworkNetworkingConfig{
 		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
 			s.cfg.NetworkName: {
@@ -95,7 +101,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 		},
 	}
 
-	mounts, err := getMounts(s.action.Volumes)
+	mounts, err := getMounts(s.cfg.Name, s.action.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %v", err)
 	}
@@ -104,7 +110,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 		Mounts: mounts,
 	}
 
-	env, err := getEnvs(s.action.Environment, s.action.EnvFile)
+	env, err := getEnvs(s.cfg.Name, s.action.Environment, s.action.EnvFile)
 	if err != nil {
 		return fmt.Errorf("failed to get envs: %v", err)
 	}
@@ -192,17 +198,18 @@ func (s *actionRunner) start(ctx context.Context) error {
 
 			return fmt.Errorf("container did not become healthy within timeout: %s", containerID)
 		}()
-
 		if err != nil {
 			return err
 		}
 
-		s.log.Debug("All commands completed", "exitCode", exitCode, "command", lastCmd)
+		// s.log.Debug("Command executed successfully", "exitCode", exitCode, "command", lastCmd)
 
 		if exitCode != 0 {
 			return fmt.Errorf(`last command "%s" failed with exit code %d`, lastCmd, exitCode)
 		}
 	}
+
+	s.log.Debug("Action has been executed successfully")
 
 	return nil
 }

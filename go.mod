@@ -3,11 +3,11 @@ module github.com/pilat/devbox
 go 1.23.3
 
 require (
-	github.com/MatusOllah/slogcolor v1.4.0
 	github.com/compose-spec/compose-go/v2 v2.4.6
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/fatih/color v1.18.0
+	github.com/dpotapov/slogpfx v0.0.0-20230917063348-41a73c95c536
+	github.com/lmittmann/tint v1.0.6
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.30.0
@@ -26,8 +26,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.0.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.5.0 // indirect

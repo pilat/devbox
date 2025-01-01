@@ -2,9 +2,12 @@ package planner
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -12,6 +15,7 @@ import (
 	"github.com/pilat/devbox/internal/config"
 	"github.com/pilat/devbox/internal/docker"
 	"github.com/pilat/devbox/internal/pkg/depgraph"
+	"github.com/pilat/devbox/internal/pkg/utils"
 	"github.com/pilat/devbox/internal/runners"
 )
 
@@ -49,42 +53,31 @@ func Stop(ctx context.Context, cli docker.Service, log *slog.Logger, f *config.C
 }
 
 func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *config.Config) ([][]runners.Runner, error) {
+	homedir, err := utils.GetHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get home dir: %v", err)
+	}
+	projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, f.Name)
+
 	networkName := fmt.Sprintf("devbox-%s", f.Name)
-	configsName := "configs"
 
 	f.NetworkName = networkName
 
 	candidates := make([]runners.Runner, 0)
 
-	// Provisioner is a special container that has all necessary tools to work with sources
-	f.Containers = append(f.Containers, config.ContainerConfig{
-		Image:      provisionerImageName,
-		Dockerfile: provisionerDockerfile,
-	})
-
 	for _, src := range f.Sources {
 		candidates = append(candidates, runners.NewSourceRunner(
 			cli,
-			log,
+			log.With("prefix", src.Name),
 			f.Name,
-			provisionerImageName,
 			src,
-			[]string{provisionerImageName},
+			[]string{},
 		))
 	}
 
-	candidates = append(candidates, runners.NewConfigsRunner(
-		cli,
-		log,
-		f.Name,
-		configsName,
-		f.Configs,
-		[]string{},
-	))
-
 	candidates = append(candidates, runners.NewNetworkRunner(
 		cli,
-		log,
+		log.With("prefix", "network"),
 		f,
 		[]string{},
 	))
@@ -97,7 +90,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		dependsOn := make([]string, 0)
 
 		// Extract all "FROM" from Dockerfile
-		images, err := extractImages(container.Dockerfile)
+		images, err := extractImages(projectPath, container.Dockerfile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract images from Dockerfile: %v", err)
 		}
@@ -109,7 +102,8 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 
 		candidates = append(candidates, runners.NewImageRunner(
 			cli,
-			log,
+			log.With("prefix", container.Image),
+			f,
 			&container,
 			dependsOn,
 		))
@@ -121,7 +115,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		if !slices.Contains(internalImages, dep) {
 			candidates = append(candidates, runners.NewPullRunner(
 				cli,
-				log,
+				log.With("prefix", dep),
 				dep,
 			))
 		}
@@ -132,7 +126,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		if !slices.Contains(internalImages, cont.Image) {
 			candidates = append(candidates, runners.NewPullRunner(
 				cli,
-				log,
+				log.With("prefix", cont.Image),
 				cont.Image,
 			))
 		}
@@ -147,9 +141,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 	}
 
 	coveredVolumes := make(map[string]struct{})
-
 	inspectVolumes := func(volumes []string) []string {
-		coveredV2 := make(map[string]struct{})
 		dependsOn := make([]string, 0)
 
 		for _, vol := range volumes {
@@ -158,23 +150,25 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 				continue
 			}
 
-			if strings.HasPrefix(elem[0], "/") {
+			if strings.HasPrefix(elem[0], "/") { // Absolute path
+				continue
+			}
+
+			if strings.HasPrefix(elem[0], "./") { // Relative path for configs or sources
 				continue
 			}
 
 			elem2 := strings.Split(elem[0], "/")
-			volumeName := elem2[0]
+			volumeName := elem2[0] // Volume name
 
-			if _, ok := coveredV2[volumeName]; !ok {
-				dependsOn = append(dependsOn, volumeName)
-				coveredV2[volumeName] = struct{}{}
-			}
+			dependsOn = append(dependsOn, volumeName)
 
 			_, ok := coveredVolumes[volumeName]
-			if !strings.HasPrefix(volumeName, "source.") && !strings.HasPrefix(volumeName, "configs") && !ok {
+			if !ok {
 				candidates = append(candidates, runners.NewVolumeRunner(
 					cli,
-					log,
+					log.With("prefix", volumeName),
+					f,
 					volumeName,
 					[]string{},
 				))
@@ -198,12 +192,11 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 
 		dependsOn = append(dependsOn, svc.Image)
 		dependsOn = append(dependsOn, networkName)
-		dependsOn = append(dependsOn, configsName)
 		dependsOn = append(dependsOn, inspectVolumes(svc.Volumes)...)
 
 		candidates = append(candidates, runners.NewServiceRunner(
 			cli,
-			log.With("service", svc.Name),
+			log.With("prefix", svc.Name),
 			f,
 			svc,
 			dependsOn,
@@ -223,12 +216,11 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 
 		dependsOn = append(dependsOn, act.Image)
 		dependsOn = append(dependsOn, networkName)
-		dependsOn = append(dependsOn, configsName)
 		dependsOn = append(dependsOn, inspectVolumes(act.Volumes)...)
 
 		candidates = append(candidates, runners.NewActionRunner(
 			cli,
-			log.With("action", act.Name),
+			log.With("prefix", act.Name),
 			f,
 			act,
 			dependsOn,
@@ -244,11 +236,17 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 	return plan, nil
 }
 
-func extractImages(dockerfile string) ([]string, error) {
+func extractImages(projectPath, dockerfile string) ([]string, error) {
+	dockerfilePath := filepath.Join(projectPath, dockerfile)
+	content, err := os.ReadFile(dockerfilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read Dockerfile: %v", err)
+	}
+
 	var images []string
 	imageRegex := regexp.MustCompile(`(?i)^\s*from\s+([^\s]+)`)
 
-	scanner := bufio.NewScanner(strings.NewReader(dockerfile))
+	scanner := bufio.NewScanner(bytes.NewReader(content))
 	for scanner.Scan() {
 		line := scanner.Text()
 		matches := imageRegex.FindStringSubmatch(line)

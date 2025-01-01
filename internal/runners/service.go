@@ -85,8 +85,12 @@ func (s *serviceRunner) Stop(ctx context.Context) error {
 	return nil
 }
 
+func (s *serviceRunner) Destroy(ctx context.Context) error {
+	return s.Stop(ctx)
+}
+
 func (s *serviceRunner) start(ctx context.Context) error {
-	s.log.Debug("Running service")
+	s.log.Debug("Start service")
 
 	networkConfig := &docker.NetworkNetworkingConfig{
 		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
@@ -97,7 +101,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		},
 	}
 
-	mounts, err := getMounts(s.service.Volumes)
+	mounts, err := getMounts(s.cfg.Name, s.service.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %v", err)
 	}
@@ -106,7 +110,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		Mounts: mounts,
 	}
 
-	env, err := getEnvs(s.service.Environment, s.service.EnvFile)
+	env, err := getEnvs(s.cfg.Name, s.service.Environment, s.service.EnvFile)
 	if err != nil {
 		return fmt.Errorf("failed to get envs: %v", err)
 	}
@@ -127,7 +131,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 	hostname, err := utils.ConvertToRFCHostname(s.service.Name)
 	if err != nil {
-		s.log.Warn("Failed to convert hostname to RFC", "service", containerName, "error", err)
+		s.log.Warn("Failed to convert hostname to RFC", "error", err)
 		hostname = ""
 	}
 
@@ -219,7 +223,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		return fmt.Errorf("failed to wait for container to become healthy: %v", err)
 	}
 
-	s.log.Debug("Service is running in background, leave it", "service", s.service.Name)
+	s.log.Debug("Service is running in background")
 
 	return nil
 }

@@ -7,20 +7,19 @@ import (
 )
 
 type Config struct {
-	Name        string `yaml:"name"`
-	NetworkName string `yaml:"network_name"`
+	Name        string `yaml:"-"`
+	NetworkName string `yaml:"-"`
 
-	Configs    map[string]ConfigFile `yaml:"configs"`
-	Sources    []SourceConfig        `yaml:"sources"`
-	Containers []ContainerConfig     `yaml:"containers"`
-	Services   []ServiceConfig       `yaml:"services"`
-	Actions    []ActionConfig        `yaml:"actions"`
+	Sources    []SourceConfig    `yaml:"sources"`
+	Containers []ContainerConfig `yaml:"containers"`
+	Services   []ServiceConfig   `yaml:"services"`
+	Actions    []ActionConfig    `yaml:"actions"`
 }
 
-func New() (*Config, error) {
+func New(filename string) (*Config, error) {
 	cfg := &Config{}
 
-	file, err := os.ReadFile("config.yaml")
+	file, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}

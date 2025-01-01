@@ -50,6 +50,10 @@ func (s *pullRunner) Stop(ctx context.Context) error {
 	return nil
 }
 
+func (s *pullRunner) Destroy(ctx context.Context) error {
+	return nil
+}
+
 func (s *pullRunner) start(ctx context.Context) error {
 	// Check is image already exists
 	_, err := s.cli.ImageInspectWithRaw(ctx, s.name)
