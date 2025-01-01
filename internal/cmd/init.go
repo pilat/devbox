@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
-	"github.com/pilat/devbox/internal/cli"
-	"github.com/pilat/devbox/internal/log"
+	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -24,21 +26,24 @@ func NewInitCommand() *cobra.Command {
 				os.Exit(0)
 			}
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			log := log.New()
-
-			cli := cli.New(log)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := app.New()
+			if err != nil {
+				return err
+			}
 
 			gitURL := args[0]
 
-			log.Info("Init project")
-			err := cli.Init(gitURL, name, branch)
-			if err != nil {
-				log.Error("Failed to initialize project", "error", err)
-				os.Exit(1)
+			if name == "" {
+				name = guessName(gitURL)
 			}
 
-			return
+			if !validateName(name) {
+				return fmt.Errorf("Invalid project name: %s", name)
+			}
+
+			app = app.WithProject(name)
+			return app.Init(gitURL, branch)
 		},
 	}
 
@@ -46,4 +51,19 @@ func NewInitCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&branch, "branch", "b", "", "Branch to clone")
 
 	return cmd
+}
+
+func guessName(source string) string {
+	elems := strings.Split(source, "/")
+	name := elems[len(elems)-1]
+
+	if strings.HasSuffix(strings.ToLower(name), ".git") {
+		name = name[:len(name)-4]
+	}
+
+	return name
+}
+
+func validateName(name string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
 }

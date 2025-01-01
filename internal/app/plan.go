@@ -1,84 +1,26 @@
-package planner
+package app
 
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
 
-	"github.com/pilat/devbox/internal/config"
 	"github.com/pilat/devbox/internal/docker"
 	"github.com/pilat/devbox/internal/pkg/depgraph"
-	"github.com/pilat/devbox/internal/pkg/utils"
 	"github.com/pilat/devbox/internal/runners"
 )
 
-func Start(ctx context.Context, cli docker.Service, log *slog.Logger, f *config.Config) error {
-	plan, err := getPlan(ctx, cli, log, f)
-	if err != nil {
-		return fmt.Errorf("failed to get plan: %v", err)
-	}
-
-	err = depgraph.Exec(ctx, plan, func(ctx context.Context, r runners.Runner) error {
-		return r.Start(ctx)
-	})
-	if err != nil {
-		return fmt.Errorf("failed to execute steps: %v", err)
-	}
-
-	return nil
-}
-
-func Stop(ctx context.Context, cli docker.Service, log *slog.Logger, f *config.Config) error {
-	plan, err := getPlan(ctx, cli, log, f)
-	if err != nil {
-		return fmt.Errorf("failed to get plan: %v", err)
-	}
-
-	err = depgraph.ExecReverse(ctx, plan, func(ctx context.Context, r runners.Runner) error {
-		return r.Stop(ctx)
-	})
-
-	if err != nil {
-		log.Error("Error occurred while stopping images", "error", err)
-	}
-
-	return nil
-}
-
-func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *config.Config) ([][]runners.Runner, error) {
-	homedir, err := utils.GetHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get home dir: %v", err)
-	}
-	projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, f.Name)
-
-	networkName := fmt.Sprintf("devbox-%s", f.Name)
-
-	f.NetworkName = networkName
-
+func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	candidates := make([]runners.Runner, 0)
-
-	for _, src := range f.Sources {
-		candidates = append(candidates, runners.NewSourceRunner(
-			cli,
-			log.With("prefix", src.Name),
-			f.Name,
-			src,
-			[]string{},
-		))
-	}
 
 	candidates = append(candidates, runners.NewNetworkRunner(
 		cli,
-		log.With("prefix", "network"),
-		f,
+		c.cfg,
 		[]string{},
 	))
 
@@ -86,11 +28,11 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 	allDependsOn := make([]string, 0)
 
 	// Add internal images to build
-	for _, container := range f.Containers {
+	for _, container := range c.cfg.Containers {
 		dependsOn := make([]string, 0)
 
 		// Extract all "FROM" from Dockerfile
-		images, err := extractImages(projectPath, container.Dockerfile)
+		images, err := extractImages(c.projectPath, container.Dockerfile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract images from Dockerfile: %v", err)
 		}
@@ -102,8 +44,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 
 		candidates = append(candidates, runners.NewImageRunner(
 			cli,
-			log.With("prefix", container.Image),
-			f,
+			c.cfg,
 			&container,
 			dependsOn,
 		))
@@ -115,28 +56,26 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		if !slices.Contains(internalImages, dep) {
 			candidates = append(candidates, runners.NewPullRunner(
 				cli,
-				log.With("prefix", dep),
 				dep,
 			))
 		}
 	}
 
 	// Inspect containers: if image is not among internalImages, then it's external
-	for _, cont := range f.Services {
+	for _, cont := range c.cfg.Services {
 		if !slices.Contains(internalImages, cont.Image) {
 			candidates = append(candidates, runners.NewPullRunner(
 				cli,
-				log.With("prefix", cont.Image),
 				cont.Image,
 			))
 		}
 	}
 
 	allActionsAndServices := make([]string, 0)
-	for _, svc := range f.Services {
+	for _, svc := range c.cfg.Services {
 		allActionsAndServices = append(allActionsAndServices, svc.Name)
 	}
-	for _, act := range f.Actions {
+	for _, act := range c.cfg.Actions {
 		allActionsAndServices = append(allActionsAndServices, act.Name)
 	}
 
@@ -167,8 +106,7 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 			if !ok {
 				candidates = append(candidates, runners.NewVolumeRunner(
 					cli,
-					log.With("prefix", volumeName),
-					f,
+					c.cfg,
 					volumeName,
 					[]string{},
 				))
@@ -179,8 +117,8 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		return dependsOn
 	}
 
-	for i := range f.Services {
-		svc := &f.Services[i]
+	for i := range c.cfg.Services {
+		svc := &c.cfg.Services[i]
 		dependsOn := make([]string, 0)
 		for _, dep := range svc.DependsOn {
 			if !slices.Contains(allActionsAndServices, dep) {
@@ -191,20 +129,19 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		}
 
 		dependsOn = append(dependsOn, svc.Image)
-		dependsOn = append(dependsOn, networkName)
+		dependsOn = append(dependsOn, c.cfg.NetworkName)
 		dependsOn = append(dependsOn, inspectVolumes(svc.Volumes)...)
 
 		candidates = append(candidates, runners.NewServiceRunner(
 			cli,
-			log.With("prefix", svc.Name),
-			f,
+			c.cfg,
 			svc,
 			dependsOn,
 		))
 	}
 
-	for i := range f.Actions {
-		act := &f.Actions[i]
+	for i := range c.cfg.Actions {
+		act := &c.cfg.Actions[i]
 		dependsOn := make([]string, 0)
 		for _, dep := range act.DependsOn {
 			if !slices.Contains(allActionsAndServices, dep) {
@@ -215,13 +152,12 @@ func getPlan(ctx context.Context, cli docker.Service, log *slog.Logger, f *confi
 		}
 
 		dependsOn = append(dependsOn, act.Image)
-		dependsOn = append(dependsOn, networkName)
+		dependsOn = append(dependsOn, c.cfg.NetworkName)
 		dependsOn = append(dependsOn, inspectVolumes(act.Volumes)...)
 
 		candidates = append(candidates, runners.NewActionRunner(
 			cli,
-			log.With("prefix", act.Name),
-			f,
+			c.cfg,
 			act,
 			dependsOn,
 		))

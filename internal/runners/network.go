@@ -2,7 +2,6 @@ package runners
 
 import (
 	"context"
-	"log/slog"
 
 	"github.com/pilat/devbox/internal/config"
 	"github.com/pilat/devbox/internal/docker"
@@ -10,7 +9,6 @@ import (
 
 type networkRunner struct {
 	cli docker.Service
-	log *slog.Logger
 
 	cfg       *config.Config
 	dependsOn []string
@@ -18,10 +16,9 @@ type networkRunner struct {
 
 var _ Runner = (*networkRunner)(nil)
 
-func NewNetworkRunner(cli docker.Service, log *slog.Logger, cfg *config.Config, dependsOn []string) Runner {
+func NewNetworkRunner(cli docker.Service, cfg *config.Config, dependsOn []string) Runner {
 	return &networkRunner{
 		cli: cli,
-		log: log,
 
 		cfg:       cfg,
 		dependsOn: dependsOn,
@@ -76,7 +73,6 @@ func (s *networkRunner) start(ctx context.Context) error {
 	}
 
 	if len(items) > 0 {
-		s.log.Info("Network already exists", "name", s.cfg.NetworkName)
 		return nil
 	}
 

@@ -2,7 +2,6 @@ package runners
 
 import (
 	"context"
-	"log/slog"
 
 	"fmt"
 	"time"
@@ -14,7 +13,6 @@ import (
 
 type serviceRunner struct {
 	cli docker.Service
-	log *slog.Logger
 
 	cfg     *config.Config
 	service *config.ServiceConfig
@@ -24,10 +22,9 @@ type serviceRunner struct {
 
 var _ Runner = (*serviceRunner)(nil)
 
-func NewServiceRunner(cli docker.Service, log *slog.Logger, cfg *config.Config, service *config.ServiceConfig, dependsOn []string) Runner {
+func NewServiceRunner(cli docker.Service, cfg *config.Config, service *config.ServiceConfig, dependsOn []string) Runner {
 	return &serviceRunner{
 		cli: cli,
-		log: log,
 
 		cfg:     cfg,
 		service: service,
@@ -51,7 +48,6 @@ func (s *serviceRunner) Start(ctx context.Context) error {
 
 	err := s.start(ctx)
 	if err != nil {
-		s.log.Error("Failed to start service", "name", s.service.Name, "error", err)
 		return err
 	}
 
@@ -72,9 +68,7 @@ func (s *serviceRunner) Stop(ctx context.Context) error {
 		stopOptions := docker.ContainerStopOptions{
 			Timeout: &timeout,
 		}
-		if err := s.cli.ContainerStop(ctx, container.ID, stopOptions); err == nil {
-			s.log.Debug("Container stopped", "container", container.ID)
-		}
+		_ = s.cli.ContainerStop(ctx, container.ID, stopOptions)
 
 		err = s.cli.ContainerRemove(ctx, container.ID)
 		if err != nil {
@@ -90,8 +84,6 @@ func (s *serviceRunner) Destroy(ctx context.Context) error {
 }
 
 func (s *serviceRunner) start(ctx context.Context) error {
-	s.log.Debug("Start service")
-
 	networkConfig := &docker.NetworkNetworkingConfig{
 		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
 			s.cfg.NetworkName: {
@@ -125,13 +117,11 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		return fmt.Errorf("failed to list containers: %v", err)
 	}
 	if len(list) > 0 {
-		s.log.Debug("Container already exists", "container", containerName)
 		return nil
 	}
 
 	hostname, err := utils.ConvertToRFCHostname(s.service.Name)
 	if err != nil {
-		s.log.Warn("Failed to convert hostname to RFC", "error", err)
 		hostname = ""
 	}
 
@@ -185,16 +175,12 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		return fmt.Errorf("failed to create container: %v", err)
 	}
 
-	s.log.Debug("Container created", "container_id", containerID)
-
 	err = s.cli.ContainerStart(ctx, containerID)
 	if err != nil {
 		return fmt.Errorf("failed to start container: %v", err)
 	}
 
 	err = func() error {
-		s.log.Debug("Waiting for container to become healthy...", "container", containerID)
-
 		deadline := time.Now().Add(time.Minute * 5)
 		for time.Now().Before(deadline) {
 			containerJSON, err := s.cli.ContainerInspect(ctx, containerID)
@@ -204,12 +190,10 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 			health := containerJSON.State.Health
 			if health == nil {
-				s.log.Warn("Health status not defined; we are considering it healthy", "container", containerID)
 				return nil
 			}
 
 			if health.Status == "healthy" {
-				s.log.Debug("Container is healthy", "container", containerID)
 				return nil
 			}
 
@@ -222,8 +206,6 @@ func (s *serviceRunner) start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to wait for container to become healthy: %v", err)
 	}
-
-	s.log.Debug("Service is running in background")
 
 	return nil
 }

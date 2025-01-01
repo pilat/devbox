@@ -3,8 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/pilat/devbox/internal/cli"
-	"github.com/pilat/devbox/internal/log"
+	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -13,17 +12,23 @@ func NewStartCommand() *cobra.Command {
 		Use:   "start",
 		Short: "Start devbox project",
 		Long:  "That command will start devbox project",
-		Run: func(cmd *cobra.Command, args []string) {
-			log := log.New()
-
-			cli := cli.New(log)
-
-			log.Info("Start project")
-			err := cli.Start(name)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			app, err := app.New()
 			if err != nil {
-				log.Error("Failed to start project", "error", err)
 				os.Exit(1)
 			}
+
+			app = app.WithProject(name)
+
+			if err := app.LoadProject(); err != nil {
+				return err
+			}
+
+			if err := app.UpdateSources(); err != nil {
+				return err
+			}
+
+			return app.Start()
 		},
 	}
 

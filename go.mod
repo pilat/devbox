@@ -6,9 +6,7 @@ require (
 	github.com/compose-spec/compose-go/v2 v2.4.6
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/docker/go-connections v0.5.0
-	github.com/dpotapov/slogpfx v0.0.0-20230917063348-41a73c95c536
 	github.com/jedib0t/go-pretty/v6 v6.6.5
-	github.com/lmittmann/tint v1.0.6
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.30.0
@@ -49,6 +47,7 @@ require (
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.27.0 // indirect
+	golang.org/x/term v0.25.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect

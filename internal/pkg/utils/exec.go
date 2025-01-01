@@ -1,11 +1,12 @@
 package utils
 
 import (
+	"context"
 	"os/exec"
 )
 
-func Exec(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+func Exec(ctx context.Context, name string, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, name, args...)
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

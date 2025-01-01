@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,15 +20,15 @@ func New(targetFolder string) *svc {
 	}
 }
 
-func (s *svc) Reset() error {
+func (s *svc) Reset(ctx context.Context) error {
 	_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
 
-	out, err := utils.Exec("git", "-C", s.targetPath, "reset", "--hard")
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "reset", "--hard")
 	if err != nil {
 		return fmt.Errorf("failed to reset: %s %w", out, err)
 	}
 
-	out, err = utils.Exec("git", "-C", s.targetPath, "clean", "-fd")
+	out, err = utils.Exec(ctx, "git", "-C", s.targetPath, "clean", "-fd")
 	if err != nil {
 		return fmt.Errorf("failed to clean: %s %w", out, err)
 	}
@@ -35,13 +36,13 @@ func (s *svc) Reset() error {
 	return nil
 }
 
-func (s *svc) Clone(url, branch string) error {
+func (s *svc) Clone(ctx context.Context, url, branch string) error {
 	cmds := []string{"clone", url, s.targetPath}
 	if branch != "" {
 		cmds = append(cmds, "--branch", branch)
 	}
 
-	out, err := utils.Exec("git", cmds...)
+	out, err := utils.Exec(ctx, "git", cmds...)
 	if err != nil {
 		return fmt.Errorf("failed to clone: %s %w", out, err)
 	}
@@ -49,7 +50,25 @@ func (s *svc) Clone(url, branch string) error {
 	return nil
 }
 
-func (s *svc) Sync(url, branch string, sparseCheckout []string) error {
+func (s *svc) SetLocalExclude(patterns []string) error {
+	excludeFile := filepath.Join(s.targetPath, ".git/info/exclude")
+	file, err := os.OpenFile(excludeFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to open exclude file: %w", err)
+	}
+	defer file.Close()
+
+	for _, pattern := range patterns {
+		_, err = file.WriteString(pattern + "\n")
+		if err != nil {
+			return fmt.Errorf("failed to write to exclude file: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []string) error {
 	isExist := false
 	if _, err := os.Stat(s.targetPath); err == nil {
 		isExist = true
@@ -58,41 +77,41 @@ func (s *svc) Sync(url, branch string, sparseCheckout []string) error {
 	if isExist {
 		_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
 
-		out, err := utils.Exec("git", "-C", s.targetPath, "reset", "--hard")
+		out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "reset", "--hard")
 		if err != nil {
 			return fmt.Errorf("failed to reset: %s %w", out, err)
 		}
 
-		out, err = utils.Exec("git", "-C", s.targetPath, "clean", "-fd")
+		out, err = utils.Exec(ctx, "git", "-C", s.targetPath, "clean", "-fd")
 		if err != nil {
 			return fmt.Errorf("failed to clean: %s %w", out, err)
 		}
 	} else {
 		_ = os.MkdirAll(s.targetPath, os.ModePerm)
-		out, err := utils.Exec("git", "clone", "--no-checkout", "--depth", "1", url, s.targetPath)
+		out, err := utils.Exec(ctx, "git", "clone", "--no-checkout", "--depth", "1", url, s.targetPath)
 		if err != nil {
 			return fmt.Errorf("failed to clone: %s %w", out, err)
 		}
 	}
 
 	if len(sparseCheckout) > 0 {
-		out, err := utils.Exec("git", "-C", s.targetPath, "sparse-checkout", "init", "--cone")
+		out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "sparse-checkout", "init", "--cone")
 		if err != nil {
 			return fmt.Errorf("failed to init sparse-checkout: %s %w", out, err)
 		}
 
-		out, err = utils.Exec("git", append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
+		out, err = utils.Exec(ctx, "git", append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
 		if err != nil {
 			return fmt.Errorf("failed to set sparse-checkout: %s %w", out, err)
 		}
 	} else {
-		out, err := utils.Exec("git", "-C", s.targetPath, "sparse-checkout", "disable")
+		out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "sparse-checkout", "disable")
 		if err != nil {
 			return fmt.Errorf("failed to disable sparse-checkout: %s %w", out, err)
 		}
 	}
 
-	out, err := utils.Exec("git", "-C", s.targetPath, "checkout", branch)
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "checkout", branch)
 	if err != nil {
 		return fmt.Errorf("failed to checkout: %s %w", out, err)
 	}
@@ -100,8 +119,8 @@ func (s *svc) Sync(url, branch string, sparseCheckout []string) error {
 	return nil
 }
 
-func (s *svc) Pull() error {
-	out, err := utils.Exec("git", "-C", s.targetPath, "pull")
+func (s *svc) Pull(ctx context.Context) error {
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "pull")
 	if err != nil {
 		return fmt.Errorf("failed to pull: %s %w", out, err)
 	}
@@ -109,8 +128,8 @@ func (s *svc) Pull() error {
 	return nil
 }
 
-func (s *svc) GetInfo() (*commitInfo, error) {
-	out, err := utils.Exec("git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s")
+func (s *svc) GetInfo(ctx context.Context) (*commitInfo, error) {
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit info: %s", out)
 	}

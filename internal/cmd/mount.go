@@ -3,8 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/pilat/devbox/internal/cli"
-	"github.com/pilat/devbox/internal/log"
+	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
@@ -14,14 +13,13 @@ func NewMountCommand() *cobra.Command {
 		Short: "Mount source code",
 		Long:  "That command will mount source code to the project",
 		Run: func(cmd *cobra.Command, args []string) {
-			log := log.New()
-
-			cli := cli.New(log)
-
-			log.Info("Unmount source code")
-			err := cli.Mount(name, sourceName, targetPath)
+			app, err := app.New()
 			if err != nil {
-				log.Error("Failed to unmount source code", "error", err)
+				os.Exit(1)
+			}
+
+			err = app.Mount(name, sourceName, targetPath)
+			if err != nil {
 				os.Exit(1)
 			}
 		},

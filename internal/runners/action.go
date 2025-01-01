@@ -2,7 +2,6 @@ package runners
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"fmt"
@@ -15,7 +14,6 @@ import (
 
 type actionRunner struct {
 	cli docker.Service
-	log *slog.Logger
 
 	cfg    *config.Config
 	action *config.ActionConfig
@@ -25,10 +23,9 @@ type actionRunner struct {
 
 var _ Runner = (*actionRunner)(nil)
 
-func NewActionRunner(cli docker.Service, log *slog.Logger, cfg *config.Config, action *config.ActionConfig, dependsOn []string) Runner {
+func NewActionRunner(cli docker.Service, cfg *config.Config, action *config.ActionConfig, dependsOn []string) Runner {
 	return &actionRunner{
 		cli: cli,
-		log: log,
 
 		cfg:    cfg,
 		action: action,
@@ -52,7 +49,6 @@ func (s *actionRunner) Start(ctx context.Context) error {
 
 	err := s.start(ctx)
 	if err != nil {
-		s.log.Error("Failed to start action", "error", err)
 		return err
 	}
 
@@ -73,9 +69,7 @@ func (s *actionRunner) Stop(ctx context.Context) error {
 		stopOptions := docker.ContainerStopOptions{
 			Timeout: &timeout,
 		}
-		if err := s.cli.ContainerStop(ctx, container.ID, stopOptions); err == nil {
-			s.log.Debug("Container stopped", "container", container.ID)
-		}
+		_ = s.cli.ContainerStop(ctx, container.ID, stopOptions)
 
 		err = s.cli.ContainerRemove(ctx, container.ID)
 		if err != nil {
@@ -91,8 +85,6 @@ func (s *actionRunner) Destroy(ctx context.Context) error {
 }
 
 func (s *actionRunner) start(ctx context.Context) error {
-	s.log.Info("Start action")
-
 	networkConfig := &docker.NetworkNetworkingConfig{
 		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
 			s.cfg.NetworkName: {
@@ -128,17 +120,14 @@ func (s *actionRunner) start(ctx context.Context) error {
 			return fmt.Errorf("failed to list containers: %v", err)
 		}
 		if len(list) > 0 {
-			s.log.Warn("Container already exists", "container", containerName)
 			continue
 		}
 
 		hostname, err := utils.ConvertToRFCHostname(fmt.Sprintf("%s-%d", s.action.Name, i))
 		if err != nil {
-			s.log.Warn("Failed to convert hostname to RFC", "error", err)
 			hostname = ""
 		}
 
-		s.log.Debug("Running action", "index", i, "command", lastCmd)
 		containerConfig := &docker.ContainerConfig{
 			Image:      s.action.Image,
 			Env:        env,
@@ -162,8 +151,6 @@ func (s *actionRunner) start(ctx context.Context) error {
 			return fmt.Errorf("failed to create container: %v", err)
 		}
 
-		s.log.Debug("Container created", "container_id", containerID)
-
 		err = s.cli.ContainerStart(ctx, containerID)
 		if err != nil {
 			return fmt.Errorf("failed to start container: %v", err)
@@ -171,8 +158,6 @@ func (s *actionRunner) start(ctx context.Context) error {
 
 		exitCode := 0
 		err = func() error {
-			s.log.Debug("Waiting for container to exit...")
-
 			backoff := 50 * time.Millisecond
 
 			deadline := time.Now().Add(time.Minute * 5)
@@ -202,14 +187,10 @@ func (s *actionRunner) start(ctx context.Context) error {
 			return err
 		}
 
-		// s.log.Debug("Command executed successfully", "exitCode", exitCode, "command", lastCmd)
-
 		if exitCode != 0 {
 			return fmt.Errorf(`last command "%s" failed with exit code %d`, lastCmd, exitCode)
 		}
 	}
-
-	s.log.Debug("Action has been executed successfully")
 
 	return nil
 }

@@ -9,7 +9,6 @@ import (
 type Config struct {
 	Name        string `yaml:"-"`
 	NetworkName string `yaml:"-"`
-	State       state  `yaml:"-"`
 
 	Sources    []SourceConfig    `yaml:"sources"`
 	Containers []ContainerConfig `yaml:"containers"`

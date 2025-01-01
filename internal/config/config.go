@@ -1,43 +1,27 @@
 package config
 
 import (
-	"encoding/json"
+	"fmt"
 	"os"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
 
-func New(projectPath string) (*Config, error) {
-	configFile := filepath.Join(projectPath, "devbox.yaml")
-	stateFile := filepath.Join(projectPath, ".devboxstate")
+func New(filename string) (*Config, error) {
+	_, err := os.Stat(filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config file: %w", err)
+	}
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
 
 	cfg := &Config{}
-	configContent, err := os.ReadFile(configFile)
+	err = yaml.Unmarshal(content, cfg)
 	if err != nil {
 		return nil, err
-	}
-
-	err = yaml.Unmarshal(configContent, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	stateContent, err := os.ReadFile(stateFile)
-	if os.IsNotExist(err) {
-		stateContent = []byte("{}")
-	} else if err != nil {
-		return nil, err
-	}
-
-	err = json.Unmarshal(stateContent, &cfg.State)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.State.filename = stateFile
-	if cfg.State.Mounts == nil {
-		cfg.State.Mounts = make(map[string]string)
 	}
 
 	return cfg, nil
