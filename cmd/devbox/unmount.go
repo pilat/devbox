@@ -1,15 +1,18 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewInfoCommand() *cobra.Command {
+func init() {
+	var name string
+	var sourceName string
+
 	cmd := &cobra.Command{
-		Use:   "info",
-		Short: "Info devbox projects",
-		Long:  "That command returns an info about a particular devbox project",
+		Use:   "unmount",
+		Short: "Unmount source code",
+		Long:  "That command will unmount source code from the project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
@@ -24,11 +27,12 @@ func NewInfoCommand() *cobra.Command {
 				return err
 			}
 
-			return app.Info()
+			return app.Unmount(sourceName)
 		},
 	}
 
 	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
+	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
 
-	return cmd
+	root.AddCommand(cmd)
 }

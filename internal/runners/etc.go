@@ -42,14 +42,6 @@ func getMounts(cfg *config.Config, volumes []string) ([]docker.Mount, error) {
 
 				projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
 
-				// elems3 := strings.Split(src, "/")
-				// if len(elems3) >= 3 && elems3[0] == "." && elems3[1] == "sources" {
-				// 	sourceName := elems3[2]
-				// 	if localPath, ok := cfg.State.Mounts[sourceName]; ok {
-				// 		src = localPath
-				// 	}
-				// }
-
 				src = strings.Replace(src, "./", projectPath+"/", 1)
 			}
 

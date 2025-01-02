@@ -1,15 +1,17 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewStartCommand() *cobra.Command {
+func init() {
+	var name string
+
 	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "Start devbox project",
-		Long:  "That command will start devbox project",
+		Use:   "stop",
+		Short: "Stop devbox project",
+		Long:  "That command will stop devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
@@ -24,15 +26,11 @@ func NewStartCommand() *cobra.Command {
 				return err
 			}
 
-			if err := app.UpdateSources(); err != nil {
-				return err
-			}
-
-			return app.Start()
+			return app.Stop()
 		},
 	}
 
 	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
 
-	return cmd
+	root.AddCommand(cmd)
 }

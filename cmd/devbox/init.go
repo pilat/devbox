@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"fmt"
@@ -10,12 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var name string
-var branch string
-var sourceName string
-var targetPath string
+func init() {
+	var name string
+	var branch string
 
-func NewInitCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init <git-source>",
 		Short: "Initialize devbox project",
@@ -53,7 +51,7 @@ func NewInitCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
 	cmd.PersistentFlags().StringVarP(&branch, "branch", "b", "", "Branch to clone")
 
-	return cmd
+	root.AddCommand(cmd)
 }
 
 func guessName(source string) string {

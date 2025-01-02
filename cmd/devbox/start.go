@@ -1,15 +1,17 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewUnmountCommand() *cobra.Command {
+func init() {
+	var name string
+
 	cmd := &cobra.Command{
-		Use:   "unmount",
-		Short: "Unmount source code",
-		Long:  "That command will unmount source code from the project",
+		Use:   "start",
+		Short: "Start devbox project",
+		Long:  "That command will start devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
@@ -24,12 +26,15 @@ func NewUnmountCommand() *cobra.Command {
 				return err
 			}
 
-			return app.Unmount(sourceName)
+			if err := app.UpdateSources(); err != nil {
+				return err
+			}
+
+			return app.Start()
 		},
 	}
 
 	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
-	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
 
-	return cmd
+	root.AddCommand(cmd)
 }

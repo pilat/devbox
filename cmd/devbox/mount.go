@@ -1,11 +1,15 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewMountCommand() *cobra.Command {
+func init() {
+	var name string
+	var sourceName string
+	var targetPath string
+
 	cmd := &cobra.Command{
 		Use:   "mount",
 		Short: "Mount source code",
@@ -32,5 +36,5 @@ func NewMountCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
 	cmd.PersistentFlags().StringVarP(&targetPath, "path", "p", "", "Path to mount")
 
-	return cmd
+	root.AddCommand(cmd)
 }

@@ -1,11 +1,11 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewListCommand() *cobra.Command {
+func init() {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List devbox projects",
@@ -20,5 +20,5 @@ func NewListCommand() *cobra.Command {
 		},
 	}
 
-	return cmd
+	root.AddCommand(cmd)
 }

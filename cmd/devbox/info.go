@@ -1,15 +1,17 @@
-package cmd
+package main
 
 import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
 
-func NewStopCommand() *cobra.Command {
+func init() {
+	var name string
+
 	cmd := &cobra.Command{
-		Use:   "stop",
-		Short: "Stop devbox project",
-		Long:  "That command will stop devbox project",
+		Use:   "info",
+		Short: "Info devbox projects",
+		Long:  "That command returns an info about a particular devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
@@ -24,11 +26,11 @@ func NewStopCommand() *cobra.Command {
 				return err
 			}
 
-			return app.Stop()
+			return app.Info()
 		},
 	}
 
 	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
 
-	return cmd
+	root.AddCommand(cmd)
 }
