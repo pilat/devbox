@@ -146,3 +146,21 @@ func (s *svc) GetInfo(ctx context.Context) (*commitInfo, error) {
 		Message: parts[3],
 	}, nil
 }
+
+func (s *svc) GetRemote(ctx context.Context) (string, error) {
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "config", "--get", "remote.origin.url")
+	if err != nil {
+		return "", fmt.Errorf("failed to get remote: %s %w", out, err)
+	}
+
+	return strings.TrimSpace(out), nil
+}
+
+func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", fmt.Errorf("failed to get top level: %s %w", out, err)
+	}
+
+	return strings.TrimSpace(out), nil
+}

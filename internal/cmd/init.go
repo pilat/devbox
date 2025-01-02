@@ -42,7 +42,10 @@ func NewInitCommand() *cobra.Command {
 				return fmt.Errorf("Invalid project name: %s", name)
 			}
 
-			app = app.WithProject(name)
+			if err := app.WithProject(name); err != nil {
+				return err
+			}
+
 			return app.Init(gitURL, branch)
 		},
 	}

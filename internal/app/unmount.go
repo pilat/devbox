@@ -1,38 +1,26 @@
 package app
 
-import (
-	"fmt"
-	"path/filepath"
+import "fmt"
 
-	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/pkg/utils"
-)
-
-func (c *app) Unmount(name, sourceName string) error {
-	homeDir, err := utils.GetHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home dir: %w", err)
+func (a *app) Unmount(sourceName string) error {
+	if sourceName == "" {
+		_, s, err := a.autodetect()
+		if err != nil {
+			return fmt.Errorf("failed to autodetect source name: %w", err)
+		} else {
+			sourceName = s
+		}
 	}
 
-	targetPath := filepath.Join(homeDir, appFolder, name)
-
-	cfg, err := config.New(targetPath)
-	if err != nil {
-		return fmt.Errorf("failed to read configuration: %w", err)
+	if _, ok := a.state.Mounts[sourceName]; !ok {
+		return fmt.Errorf("source %s is not mounted", sourceName)
 	}
 
-	cfg.Name = name
+	delete(a.state.Mounts, sourceName)
 
-	// if _, ok := cfg.State.Mounts[sourceName]; !ok {
-	// 	return fmt.Errorf("source %s is not mounted", sourceName)
-	// }
+	if err := a.state.Save(); err != nil {
+		return fmt.Errorf("failed to save state: %w", err)
+	}
 
-	// delete(cfg.State.Mounts, sourceName)
-
-	// err = cfg.State.Save()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to save state: %w", err)
-	// }
-
-	return nil
+	return a.Info()
 }

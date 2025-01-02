@@ -10,8 +10,8 @@ import (
 	"github.com/pilat/devbox/internal/runners"
 )
 
-func (c *app) Stop() error {
-	if c.projectPath == "" {
+func (a *app) Stop() error {
+	if a.projectPath == "" {
 		return ErrProjectIsNotSet
 	}
 
@@ -26,7 +26,7 @@ func (c *app) Stop() error {
 		return fmt.Errorf("failed to ping docker: %w", err)
 	}
 
-	plan, err := c.getPlan(d)
+	plan, err := a.getPlan(d)
 	if err != nil {
 		return fmt.Errorf("failed to get plan: %w", err)
 	}

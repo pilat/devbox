@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -15,10 +13,12 @@ func NewStartCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
-				os.Exit(1)
+				return err
 			}
 
-			app = app.WithProject(name)
+			if err := app.WithProject(name); err != nil {
+				return err
+			}
 
 			if err := app.LoadProject(); err != nil {
 				return err

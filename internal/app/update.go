@@ -7,12 +7,12 @@ import (
 	"github.com/pilat/devbox/internal/git"
 )
 
-func (c *app) update() error {
-	if c.projectPath == "" {
+func (a *app) update() error {
+	if a.projectPath == "" {
 		return ErrProjectIsNotSet
 	}
 
-	git := git.New(c.projectPath)
+	git := git.New(a.projectPath)
 
 	err := git.Pull(context.TODO()) // TODO: consider using git.Sync() to reset it every time
 	if err != nil {

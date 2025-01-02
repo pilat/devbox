@@ -9,12 +9,12 @@ import (
 	"github.com/pilat/devbox/internal/git"
 )
 
-func (c *app) Info() error {
-	if c.projectPath == "" {
+func (a *app) Info() error {
+	if a.projectPath == "" {
 		return ErrProjectIsNotSet
 	}
 
-	err := c.update()
+	err := a.update()
 	if err != nil {
 		return fmt.Errorf("failed to update project: %w", err)
 	}
@@ -22,8 +22,8 @@ func (c *app) Info() error {
 	hasMounts := false
 	sourcesTable := makeTable("Name", "Message", "Author", "Date")
 	mountsTable := makeTable("Name", "Local path")
-	for _, source := range c.cfg.Sources {
-		repoPath := filepath.Join(c.projectPath, sourcesDir, source.Name)
+	for _, source := range a.cfg.Sources {
+		repoPath := filepath.Join(a.projectPath, sourcesDir, source.Name)
 		git := git.New(repoPath)
 		info, err := git.GetInfo(context.TODO())
 		if err != nil {
@@ -34,7 +34,7 @@ func (c *app) Info() error {
 			source.Name, info.Message, info.Author, info.Date,
 		})
 
-		if localPath, ok := c.state.Mounts[source.Name]; ok {
+		if localPath, ok := a.state.Mounts[source.Name]; ok {
 			hasMounts = true
 			mountsTable.AppendRow(table.Row{
 				source.Name, localPath,

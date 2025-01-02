@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -12,16 +10,21 @@ func NewUnmountCommand() *cobra.Command {
 		Use:   "unmount",
 		Short: "Unmount source code",
 		Long:  "That command will unmount source code from the project",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
-				os.Exit(1)
+				return err
 			}
 
-			err = app.Unmount(name, sourceName)
-			if err != nil {
-				os.Exit(1)
+			if err := app.WithProject(name); err != nil {
+				return err
 			}
+
+			if err := app.LoadProject(); err != nil {
+				return err
+			}
+
+			return app.Unmount(sourceName)
 		},
 	}
 

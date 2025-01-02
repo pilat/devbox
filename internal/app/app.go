@@ -43,17 +43,24 @@ func New() (*app, error) {
 	}, nil
 }
 
-func (a *app) WithProject(name string) *app {
+func (a *app) WithProject(name string) error {
 	if a.projectName != "" {
 		panic("project already set")
 	}
 
-	a = a.clone()
+	if name == "" {
+		projectName, _, err := a.autodetect()
+		if err != nil {
+			return fmt.Errorf("failed to autodetect project name: %w", err)
+		} else {
+			name = projectName
+		}
+	}
 
 	a.projectName = name
 	a.projectPath = filepath.Join(a.homeDir, appFolder, name)
 
-	return a
+	return nil
 }
 
 func (a *app) LoadProject() error {
@@ -124,10 +131,4 @@ func (a *app) UpdateSources() error {
 func (a *app) isProjectExists() bool {
 	_, err := os.Stat(a.projectPath)
 	return err == nil
-}
-
-func (a *app) clone() *app {
-	c2 := new(app)
-	*c2 = *a
-	return c2
 }

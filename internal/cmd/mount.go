@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"os"
-
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -12,16 +10,21 @@ func NewMountCommand() *cobra.Command {
 		Use:   "mount",
 		Short: "Mount source code",
 		Long:  "That command will mount source code to the project",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
-				os.Exit(1)
+				return err
 			}
 
-			err = app.Mount(name, sourceName, targetPath)
-			if err != nil {
-				os.Exit(1)
+			if err := app.WithProject(name); err != nil {
+				return err
 			}
+
+			if err := app.LoadProject(); err != nil {
+				return err
+			}
+
+			return app.Mount(sourceName, targetPath)
 		},
 	}
 

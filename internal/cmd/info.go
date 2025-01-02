@@ -16,13 +16,11 @@ func NewInfoCommand() *cobra.Command {
 				return err
 			}
 
-			app = app.WithProject(name)
-
-			if err := app.LoadProject(); err != nil {
+			if err := app.WithProject(name); err != nil {
 				return err
 			}
 
-			if err := app.UpdateSources(); err != nil {
+			if err := app.LoadProject(); err != nil {
 				return err
 			}
 

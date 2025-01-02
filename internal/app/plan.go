@@ -15,12 +15,12 @@ import (
 	"github.com/pilat/devbox/internal/runners"
 )
 
-func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
+func (a *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	candidates := make([]runners.Runner, 0)
 
 	candidates = append(candidates, runners.NewNetworkRunner(
 		cli,
-		c.cfg,
+		a.cfg,
 		[]string{},
 	))
 
@@ -28,11 +28,11 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	allDependsOn := make([]string, 0)
 
 	// Add internal images to build
-	for _, container := range c.cfg.Containers {
+	for _, container := range a.cfg.Containers {
 		dependsOn := make([]string, 0)
 
 		// Extract all "FROM" from Dockerfile
-		images, err := extractImages(c.projectPath, container.Dockerfile)
+		images, err := extractImages(a.projectPath, container.Dockerfile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to extract images from Dockerfile: %v", err)
 		}
@@ -44,7 +44,7 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 
 		candidates = append(candidates, runners.NewImageRunner(
 			cli,
-			c.cfg,
+			a.cfg,
 			&container,
 			dependsOn,
 		))
@@ -62,7 +62,7 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	}
 
 	// Inspect containers: if image is not among internalImages, then it's external
-	for _, cont := range c.cfg.Services {
+	for _, cont := range a.cfg.Services {
 		if !slices.Contains(internalImages, cont.Image) {
 			candidates = append(candidates, runners.NewPullRunner(
 				cli,
@@ -72,10 +72,10 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	}
 
 	allActionsAndServices := make([]string, 0)
-	for _, svc := range c.cfg.Services {
+	for _, svc := range a.cfg.Services {
 		allActionsAndServices = append(allActionsAndServices, svc.Name)
 	}
-	for _, act := range c.cfg.Actions {
+	for _, act := range a.cfg.Actions {
 		allActionsAndServices = append(allActionsAndServices, act.Name)
 	}
 
@@ -106,7 +106,7 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 			if !ok {
 				candidates = append(candidates, runners.NewVolumeRunner(
 					cli,
-					c.cfg,
+					a.cfg,
 					volumeName,
 					[]string{},
 				))
@@ -117,8 +117,8 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 		return dependsOn
 	}
 
-	for i := range c.cfg.Services {
-		svc := &c.cfg.Services[i]
+	for i := range a.cfg.Services {
+		svc := &a.cfg.Services[i]
 		dependsOn := make([]string, 0)
 		for _, dep := range svc.DependsOn {
 			if !slices.Contains(allActionsAndServices, dep) {
@@ -129,19 +129,19 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 		}
 
 		dependsOn = append(dependsOn, svc.Image)
-		dependsOn = append(dependsOn, c.cfg.NetworkName)
+		dependsOn = append(dependsOn, a.cfg.NetworkName)
 		dependsOn = append(dependsOn, inspectVolumes(svc.Volumes)...)
 
 		candidates = append(candidates, runners.NewServiceRunner(
 			cli,
-			c.cfg,
+			a.cfg,
 			svc,
 			dependsOn,
 		))
 	}
 
-	for i := range c.cfg.Actions {
-		act := &c.cfg.Actions[i]
+	for i := range a.cfg.Actions {
+		act := &a.cfg.Actions[i]
 		dependsOn := make([]string, 0)
 		for _, dep := range act.DependsOn {
 			if !slices.Contains(allActionsAndServices, dep) {
@@ -152,12 +152,12 @@ func (c *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 		}
 
 		dependsOn = append(dependsOn, act.Image)
-		dependsOn = append(dependsOn, c.cfg.NetworkName)
+		dependsOn = append(dependsOn, a.cfg.NetworkName)
 		dependsOn = append(dependsOn, inspectVolumes(act.Volumes)...)
 
 		candidates = append(candidates, runners.NewActionRunner(
 			cli,
-			c.cfg,
+			a.cfg,
 			act,
 			dependsOn,
 		))
