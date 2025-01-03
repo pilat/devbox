@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 	"github.com/pilat/devbox/internal/pkg/utils"
 )
 
 type actionRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	cfg    *config.Config
 	action *config.ActionConfig
@@ -23,7 +23,7 @@ type actionRunner struct {
 
 var _ Runner = (*actionRunner)(nil)
 
-func NewActionRunner(cli docker.Service, cfg *config.Config, action *config.ActionConfig, dependsOn []string) Runner {
+func NewActionRunner(cli container.Service, cfg *config.Config, action *config.ActionConfig, dependsOn []string) Runner {
 	return &actionRunner{
 		cli: cli,
 
@@ -55,28 +55,8 @@ func (s *actionRunner) Start(ctx context.Context) error {
 }
 
 func (s *actionRunner) Stop(ctx context.Context) error {
-	list, err := s.cli.ContainersList(ctx, docker.ContainersListOptions{
-		All:     true,
-		Filters: filterLabels(s.cfg.Name, "action", s.action.Name, ""),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list containers: %w", err)
-	}
-
-	for _, container := range list {
-		timeout := 0
-		stopOptions := docker.ContainerStopOptions{
-			Timeout: &timeout,
-		}
-		_ = s.cli.ContainerStop(ctx, container.ID, stopOptions)
-
-		err = s.cli.ContainerRemove(ctx, container.ID)
-		if err != nil {
-			return fmt.Errorf("failed to remove container: %w", err)
-		}
-	}
-
-	return nil
+	labels := filterLabels(s.cfg.Name, "action", s.action.Name, "")
+	return stopContainers(ctx, s.cli, labels)
 }
 
 func (s *actionRunner) Destroy(ctx context.Context) error {
@@ -84,20 +64,14 @@ func (s *actionRunner) Destroy(ctx context.Context) error {
 }
 
 func (s *actionRunner) start(ctx context.Context) error {
-	networkConfig := &docker.NetworkNetworkingConfig{
-		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
-			s.cfg.NetworkName: {
-				NetworkID: s.cfg.NetworkName,
-			},
-		},
-	}
+	networkConfig := makeNetworkConfig(s.cfg.NetworkName)
 
 	mounts, err := getMounts(s.cfg, s.action.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %w", err)
 	}
 
-	hostConfig := &docker.ContainerHostConfig{
+	hostConfig := &container.ContainerHostConfig{
 		Mounts: mounts,
 	}
 
@@ -111,7 +85,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 
 		containerName := fmt.Sprintf("%s-%s-%d", s.cfg.Name, s.action.Name, i)
 
-		list, err := s.cli.ContainersList(ctx, docker.ContainersListOptions{
+		list, err := s.cli.ContainersList(ctx, container.ContainersListOptions{
 			All:     true,
 			Filters: filterLabels(s.cfg.Name, "action", s.action.Name, containerName),
 		})
@@ -127,7 +101,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 			hostname = ""
 		}
 
-		containerConfig := &docker.ContainerConfig{
+		containerConfig := &container.ContainerConfig{
 			Image:      s.action.Image,
 			Env:        env,
 			WorkingDir: s.action.WorkingDir,

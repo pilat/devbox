@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/pkg/git"
 	"github.com/pilat/devbox/internal/pkg/utils"
 	"github.com/pilat/devbox/internal/state"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/pkg/git"
 )
 
 func (a *app) Init(url string, branch string) error {

@@ -10,12 +10,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 	"github.com/pilat/devbox/internal/pkg/depgraph"
 	"github.com/pilat/devbox/internal/runners"
 )
 
-func (a *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
+func (a *app) getPlan(cli container.Service) ([][]runners.Runner, error) {
 	candidates := make([]runners.Runner, 0)
 
 	candidates = append(candidates, runners.NewNetworkRunner(

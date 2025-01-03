@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 	"github.com/pilat/devbox/internal/pkg/utils"
 )
 
 type imageRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	cfg       *config.Config
 	container *config.ContainerConfig // if nil, then it's an external image
@@ -26,7 +26,7 @@ type imageRunner struct {
 
 var _ Runner = (*imageRunner)(nil)
 
-func NewImageRunner(cli docker.Service, cfg *config.Config, container *config.ContainerConfig, dependsOn []string) Runner {
+func NewImageRunner(cli container.Service, cfg *config.Config, container *config.ContainerConfig, dependsOn []string) Runner {
 	return &imageRunner{
 		cli: cli,
 
@@ -166,7 +166,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 	}
 
 	// Set up context and build options
-	buildOptions := docker.ImageBuildOptions{
+	buildOptions := container.ImageBuildOptions{
 		Tags:       []string{s.container.Image},
 		Dockerfile: "Dockerfile",
 		Version:    "2", // important for docker, not for podman

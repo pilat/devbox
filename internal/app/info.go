@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/pkg/git"
 )
 
 func (a *app) Info() error {

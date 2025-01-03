@@ -4,11 +4,11 @@ import (
 	"context"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 )
 
 type networkRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	cfg       *config.Config
 	dependsOn []string
@@ -16,7 +16,7 @@ type networkRunner struct {
 
 var _ Runner = (*networkRunner)(nil)
 
-func NewNetworkRunner(cli docker.Service, cfg *config.Config, dependsOn []string) Runner {
+func NewNetworkRunner(cli container.Service, cfg *config.Config, dependsOn []string) Runner {
 	return &networkRunner{
 		cli: cli,
 
@@ -47,7 +47,7 @@ func (s *networkRunner) Start(ctx context.Context) error {
 }
 
 func (s *networkRunner) Stop(ctx context.Context) error {
-	items, err := s.cli.ListNetworks(ctx, docker.NetworksListOptions{
+	items, err := s.cli.ListNetworks(ctx, container.NetworksListOptions{
 		Filters: filterLabels(s.cfg.Name, "service", s.cfg.NetworkName, s.cfg.NetworkName),
 	})
 	if err != nil {
@@ -69,7 +69,7 @@ func (s *networkRunner) Destroy(ctx context.Context) error {
 }
 
 func (s *networkRunner) start(ctx context.Context) error {
-	items, err := s.cli.ListNetworks(ctx, docker.NetworksListOptions{
+	items, err := s.cli.ListNetworks(ctx, container.NetworksListOptions{
 		Filters: filterLabels(s.cfg.Name, "network", s.cfg.NetworkName, s.cfg.NetworkName),
 	})
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *networkRunner) start(ctx context.Context) error {
 		return nil
 	}
 
-	return s.cli.CreateNetwork(ctx, s.cfg.NetworkName, docker.NetworkCreateOptions{
+	return s.cli.CreateNetwork(ctx, s.cfg.NetworkName, container.NetworkCreateOptions{
 		Labels: makeLabels(s.cfg.Name, "network", s.cfg.NetworkName),
 	})
 }

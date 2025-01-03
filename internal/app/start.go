@@ -6,7 +6,7 @@ import (
 	"slices"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 	"github.com/pilat/devbox/internal/pkg/depgraph"
 	"github.com/pilat/devbox/internal/runners"
 )
@@ -21,7 +21,7 @@ func (a *app) Start() error {
 		return fmt.Errorf("failed to update project: %w", err)
 	}
 
-	d, err := docker.New()
+	d, err := container.New()
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}

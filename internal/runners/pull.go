@@ -5,11 +5,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 )
 
 type pullRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	name      string // only for external images
 	dependsOn []string
@@ -17,7 +17,7 @@ type pullRunner struct {
 
 var _ Runner = (*pullRunner)(nil)
 
-func NewPullRunner(cli docker.Service, image string) Runner {
+func NewPullRunner(cli container.Service, image string) Runner {
 	return &pullRunner{
 		cli: cli,
 
@@ -63,7 +63,7 @@ func (s *pullRunner) start(ctx context.Context) error {
 	}
 
 	// TODO: Introduce timeout because it may hang
-	resp1, err := s.cli.ImagePull(ctx, s.name, docker.ImagePullOptions{})
+	resp1, err := s.cli.ImagePull(ctx, s.name, container.ImagePullOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to pull image: %w", err)
 	}

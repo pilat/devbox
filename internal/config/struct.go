@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 )
 
 type Config struct {
@@ -40,20 +40,20 @@ type ServiceHealthcheckConfig struct {
 }
 
 type ServiceConfig struct {
-	Name        string                     `yaml:"name"`
-	Hostname    string                     `yaml:"hostname"`
-	Image       string                     `yaml:"image"`
-	Command     []string                   `yaml:"command"`    // override the default command
-	Entrypoint  *[]string                  `yaml:"entrypoint"` // override the default entrypoint
-	Environment []string                   `yaml:"environment"`
-	EnvFile     []string                   `yaml:"env_file"`
-	User        string                     `yaml:"user"`
-	Volumes     []string                   `yaml:"volumes"`
-	Ports       []docker.ServicePortConfig `yaml:"-"`
-	WorkingDir  string                     `yaml:"working_dir"`
-	Healthcheck []string                   `yaml:"healthcheck"`
-	HostAliases []string                   `yaml:"host_aliases"`
-	DependsOn   []string                   `yaml:"depends_on"`
+	Name        string                        `yaml:"name"`
+	Hostname    string                        `yaml:"hostname"`
+	Image       string                        `yaml:"image"`
+	Command     []string                      `yaml:"command"`    // override the default command
+	Entrypoint  *[]string                     `yaml:"entrypoint"` // override the default entrypoint
+	Environment []string                      `yaml:"environment"`
+	EnvFile     []string                      `yaml:"env_file"`
+	User        string                        `yaml:"user"`
+	Volumes     []string                      `yaml:"volumes"`
+	Ports       []container.ServicePortConfig `yaml:"-"`
+	WorkingDir  string                        `yaml:"working_dir"`
+	Healthcheck []string                      `yaml:"healthcheck"`
+	HostAliases []string                      `yaml:"host_aliases"`
+	DependsOn   []string                      `yaml:"depends_on"`
 }
 
 type ActionConfig struct {
@@ -84,9 +84,9 @@ func (s *ServiceConfig) UnmarshalYAML(unmarshal func(any) error) error {
 		return err
 	}
 
-	sc.Ports = []docker.ServicePortConfig{}
+	sc.Ports = []container.ServicePortConfig{}
 	for _, port := range sc2.Ports {
-		pp, err := docker.ParsePortConfig(port)
+		pp, err := container.ParsePortConfig(port)
 		if err != nil {
 			return err
 		}

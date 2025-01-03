@@ -5,11 +5,11 @@ import (
 	"fmt"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 )
 
 type volumeRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	cfg       *config.Config
 	volume    string
@@ -18,7 +18,7 @@ type volumeRunner struct {
 
 var _ Runner = (*volumeRunner)(nil)
 
-func NewVolumeRunner(cli docker.Service, cfg *config.Config, volume string, dependsOn []string) Runner {
+func NewVolumeRunner(cli container.Service, cfg *config.Config, volume string, dependsOn []string) Runner {
 	return &volumeRunner{
 		cli: cli,
 
@@ -43,7 +43,7 @@ func (s *volumeRunner) Type() ServiceType {
 func (s *volumeRunner) Start(ctx context.Context) error {
 	volumeName := fmt.Sprintf("%s-%s", s.cfg.Name, s.volume)
 
-	err := s.cli.CreateVolume(ctx, docker.VolumeCreateOptions{
+	err := s.cli.CreateVolume(ctx, container.VolumeCreateOptions{
 		Name: volumeName,
 	})
 	if err != nil {

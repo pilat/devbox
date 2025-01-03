@@ -1,4 +1,4 @@
-package docker
+package container
 
 import (
 	types2 "github.com/compose-spec/compose-go/v2/types"

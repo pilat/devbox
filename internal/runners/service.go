@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/docker"
+	"github.com/pilat/devbox/internal/pkg/container"
 	"github.com/pilat/devbox/internal/pkg/utils"
 )
 
 type serviceRunner struct {
-	cli docker.Service
+	cli container.Service
 
 	cfg     *config.Config
 	service *config.ServiceConfig
@@ -22,7 +22,7 @@ type serviceRunner struct {
 
 var _ Runner = (*serviceRunner)(nil)
 
-func NewServiceRunner(cli docker.Service, cfg *config.Config, service *config.ServiceConfig, dependsOn []string) Runner {
+func NewServiceRunner(cli container.Service, cfg *config.Config, service *config.ServiceConfig, dependsOn []string) Runner {
 	return &serviceRunner{
 		cli: cli,
 
@@ -54,28 +54,8 @@ func (s *serviceRunner) Start(ctx context.Context) error {
 }
 
 func (s *serviceRunner) Stop(ctx context.Context) error {
-	list, err := s.cli.ContainersList(ctx, docker.ContainersListOptions{
-		All:     true,
-		Filters: filterLabels(s.cfg.Name, "service", s.service.Name, ""),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to list containers: %w", err)
-	}
-
-	for _, container := range list {
-		timeout := 0
-		stopOptions := docker.ContainerStopOptions{
-			Timeout: &timeout,
-		}
-		_ = s.cli.ContainerStop(ctx, container.ID, stopOptions)
-
-		err = s.cli.ContainerRemove(ctx, container.ID)
-		if err != nil {
-			return fmt.Errorf("failed to remove container: %w", err)
-		}
-	}
-
-	return nil
+	labels := filterLabels(s.cfg.Name, "service", s.service.Name, "")
+	return stopContainers(ctx, s.cli, labels)
 }
 
 func (s *serviceRunner) Destroy(ctx context.Context) error {
@@ -83,21 +63,14 @@ func (s *serviceRunner) Destroy(ctx context.Context) error {
 }
 
 func (s *serviceRunner) start(ctx context.Context) error {
-	networkConfig := &docker.NetworkNetworkingConfig{
-		EndpointsConfig: map[string]*docker.NetworkEndpointSettings{
-			s.cfg.NetworkName: {
-				NetworkID: s.cfg.NetworkName,
-				Aliases:   s.service.HostAliases,
-			},
-		},
-	}
+	networkConfig := makeNetworkConfig(s.cfg.NetworkName, s.service.HostAliases...)
 
 	mounts, err := getMounts(s.cfg, s.service.Volumes)
 	if err != nil {
 		return fmt.Errorf("failed to get mounts: %w", err)
 	}
 
-	hostConfig := &docker.ContainerHostConfig{
+	hostConfig := &container.ContainerHostConfig{
 		Mounts: mounts,
 	}
 
@@ -108,7 +81,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 	containerName := fmt.Sprintf("%s-%s", s.cfg.Name, s.service.Name)
 
-	list, err := s.cli.ContainersList(ctx, docker.ContainersListOptions{
+	list, err := s.cli.ContainersList(ctx, container.ContainersListOptions{
 		All:     true,
 		Filters: filterLabels(s.cfg.Name, "service", s.service.Name, containerName),
 	})
@@ -128,11 +101,11 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		hostname = s.service.Hostname
 	}
 
-	exposedPorts := make(map[docker.Port]struct{})
-	bindings := docker.PortMap{}
+	exposedPorts := make(map[container.Port]struct{})
+	bindings := container.PortMap{}
 	for _, port := range s.service.Ports {
-		p := docker.Port(fmt.Sprintf("%d/%s", port.Target, port.Protocol))
-		binding := docker.PortBinding{
+		p := container.Port(fmt.Sprintf("%d/%s", port.Target, port.Protocol))
+		binding := container.PortBinding{
 			HostIP:   port.HostIP,
 			HostPort: port.Published,
 		}
@@ -141,16 +114,16 @@ func (s *serviceRunner) start(ctx context.Context) error {
 	}
 	hostConfig.PortBindings = bindings
 
-	var healthcheck *docker.HealthConfig
+	var healthcheck *container.HealthConfig
 	if s.service.Healthcheck != nil {
-		healthcheck = &docker.HealthConfig{
+		healthcheck = &container.HealthConfig{
 			Test:     append([]string{"CMD"}, s.service.Healthcheck...), // docker and podman both support CMD
 			Interval: 1 * time.Second,
 			Timeout:  120 * time.Second,
 		}
 	}
 
-	containerConfig := &docker.ContainerConfig{
+	containerConfig := &container.ContainerConfig{
 		Image:        s.service.Image,
 		Env:          env,
 		WorkingDir:   s.service.WorkingDir,
