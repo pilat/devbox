@@ -116,7 +116,7 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 		return fmt.Errorf("failed to checkout: %s %w", out, err)
 	}
 
-	return nil
+	return s.Pull(ctx)
 }
 
 func (s *svc) Pull(ctx context.Context) error {

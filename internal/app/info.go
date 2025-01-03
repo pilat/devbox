@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/pilat/devbox/internal/git"
@@ -30,8 +31,14 @@ func (a *app) Info() error {
 			return fmt.Errorf("failed to get git info for %s: %w", source.Name, err)
 		}
 
+		name := source.Name
+		additionalInfo := strings.Join(source.SparseCheckout, ", ")
+		if additionalInfo != "" {
+			name = fmt.Sprintf("%s (%s)", name, additionalInfo)
+		}
+
 		sourcesTable.AppendRow(table.Row{
-			source.Name, info.Message, info.Author, info.Date,
+			name, info.Message, info.Author, info.Date,
 		})
 
 		if localPath, ok := a.state.Mounts[source.Name]; ok {
@@ -44,12 +51,12 @@ func (a *app) Info() error {
 
 	fmt.Println("")
 	fmt.Println(" Sources:")
-	renderTable(sourcesTable, 20, 50, 20, 30)
+	renderTable(sourcesTable)
 
 	if hasMounts {
 		fmt.Println("")
 		fmt.Println(" Mounts:")
-		renderTable(mountsTable, 20, 106)
+		renderTable(mountsTable)
 	}
 
 	return nil

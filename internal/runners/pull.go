@@ -34,6 +34,10 @@ func (s *pullRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
+func (s *pullRunner) Type() ServiceType {
+	return TypePull
+}
+
 func (s *pullRunner) Start(ctx context.Context) error {
 	err := s.start(ctx)
 	if err != nil {
@@ -61,7 +65,7 @@ func (s *pullRunner) start(ctx context.Context) error {
 	// TODO: Introduce timeout because it may hang
 	resp1, err := s.cli.ImagePull(ctx, s.name, docker.ImagePullOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to pull image: %v", err)
+		return fmt.Errorf("failed to pull image: %w", err)
 	}
 
 	defer resp1.Close()
@@ -73,7 +77,7 @@ func (s *pullRunner) start(ctx context.Context) error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("failed to read output: %v", err)
+		return fmt.Errorf("failed to read output: %w", err)
 	}
 
 	return nil

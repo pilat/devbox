@@ -34,7 +34,7 @@ func (a *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 		// Extract all "FROM" from Dockerfile
 		images, err := extractImages(a.projectPath, container.Dockerfile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract images from Dockerfile: %v", err)
+			return nil, fmt.Errorf("failed to extract images from Dockerfile: %w", err)
 		}
 
 		for _, img := range images {
@@ -166,7 +166,7 @@ func (a *app) getPlan(cli docker.Service) ([][]runners.Runner, error) {
 	// Build dependency graph and execute rounds
 	plan, err := depgraph.BuildDependencyGraph(candidates)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build dependency graph: %v", err)
+		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}
 
 	return plan, nil
@@ -176,7 +176,7 @@ func extractImages(projectPath, dockerfile string) ([]string, error) {
 	dockerfilePath := filepath.Join(projectPath, dockerfile)
 	content, err := os.ReadFile(dockerfilePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read Dockerfile: %v", err)
+		return nil, fmt.Errorf("failed to read Dockerfile: %w", err)
 	}
 
 	var images []string

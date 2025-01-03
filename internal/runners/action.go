@@ -42,14 +42,13 @@ func (s *actionRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
-func (s *actionRunner) Start(ctx context.Context) error {
-	if ctx.Err() != nil {
-		return fmt.Errorf("context cancelled")
-	}
+func (s *actionRunner) Type() ServiceType {
+	return TypeAction
+}
 
-	err := s.start(ctx)
-	if err != nil {
-		return err
+func (s *actionRunner) Start(ctx context.Context) error {
+	if err := s.start(ctx); err != nil {
+		return fmt.Errorf("action '%s' has failed: %w", s.action.Name, err)
 	}
 
 	return nil
@@ -61,7 +60,7 @@ func (s *actionRunner) Stop(ctx context.Context) error {
 		Filters: filterLabels(s.cfg.Name, "action", s.action.Name, ""),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to list containers: %v", err)
+		return fmt.Errorf("failed to list containers: %w", err)
 	}
 
 	for _, container := range list {
@@ -73,7 +72,7 @@ func (s *actionRunner) Stop(ctx context.Context) error {
 
 		err = s.cli.ContainerRemove(ctx, container.ID)
 		if err != nil {
-			return fmt.Errorf("failed to remove container: %v", err)
+			return fmt.Errorf("failed to remove container: %w", err)
 		}
 	}
 
@@ -95,7 +94,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 
 	mounts, err := getMounts(s.cfg, s.action.Volumes)
 	if err != nil {
-		return fmt.Errorf("failed to get mounts: %v", err)
+		return fmt.Errorf("failed to get mounts: %w", err)
 	}
 
 	hostConfig := &docker.ContainerHostConfig{
@@ -104,7 +103,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 
 	env, err := getEnvs(s.cfg.Name, s.action.Environment, s.action.EnvFile)
 	if err != nil {
-		return fmt.Errorf("failed to get envs: %v", err)
+		return fmt.Errorf("failed to get envs: %w", err)
 	}
 
 	for i, cmds := range s.action.Commands {
@@ -117,7 +116,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 			Filters: filterLabels(s.cfg.Name, "action", s.action.Name, containerName),
 		})
 		if err != nil {
-			return fmt.Errorf("failed to list containers: %v", err)
+			return fmt.Errorf("failed to list containers: %w", err)
 		}
 		if len(list) > 0 {
 			continue
@@ -148,12 +147,12 @@ func (s *actionRunner) start(ctx context.Context) error {
 		// Create container
 		containerID, err := s.cli.ContainerCreate(ctx, containerConfig, hostConfig, networkConfig, containerName)
 		if err != nil {
-			return fmt.Errorf("failed to create container: %v", err)
+			return fmt.Errorf("failed to create container: %w", err)
 		}
 
 		err = s.cli.ContainerStart(ctx, containerID)
 		if err != nil {
-			return fmt.Errorf("failed to start container: %v", err)
+			return fmt.Errorf("failed to start container: %w", err)
 		}
 
 		exitCode := 0
@@ -164,7 +163,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 			for time.Now().Before(deadline) {
 				containerJSON, err := s.cli.ContainerInspect(ctx, containerID)
 				if err != nil {
-					return fmt.Errorf("failed to inspect container: %v", err)
+					return fmt.Errorf("failed to inspect container: %w", err)
 				}
 
 				exitCode = containerJSON.State.ExitCode
@@ -188,7 +187,7 @@ func (s *actionRunner) start(ctx context.Context) error {
 		}
 
 		if exitCode != 0 {
-			return fmt.Errorf(`last command "%s" failed with exit code %d`, lastCmd, exitCode)
+			return fmt.Errorf(`command "%s" failed with exit code %d`, lastCmd, exitCode)
 		}
 	}
 

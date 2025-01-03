@@ -33,6 +33,10 @@ func (s *networkRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
+func (s *networkRunner) Type() ServiceType {
+	return TypeNetwork
+}
+
 func (s *networkRunner) Start(ctx context.Context) error {
 	err := s.start(ctx)
 	if err != nil {

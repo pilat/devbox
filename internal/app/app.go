@@ -92,10 +92,7 @@ func (a *app) UpdateSources() error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
-	// fmt.Println(" Syncing sources...")
-
 	pw := createProgress()
-	defer stopProgress(pw)
 
 	var errCh = make(chan error, len(a.cfg.Sources))
 	for _, src := range a.cfg.Sources {
@@ -123,7 +120,7 @@ func (a *app) UpdateSources() error {
 		}
 	}
 
-	time.Sleep(110 * time.Millisecond)
+	stopProgress(pw)
 
 	return nil
 }

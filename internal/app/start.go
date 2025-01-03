@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/pilat/devbox/internal/docker"
@@ -37,12 +38,18 @@ func (a *app) Start() error {
 	}
 
 	pw := createProgress()
-	defer stopProgress(pw)
 
 	trackersMap := make(map[string]*progress.Tracker)
 	for _, round := range plan {
 		for _, step := range round {
-			t := addTracker(pw, step.Ref(), false)
+			roc := slices.Contains([]runners.ServiceType{
+				runners.TypeVolume,
+				runners.TypeNetwork,
+				runners.TypePull,
+				runners.TypeImage,
+			}, step.Type())
+
+			t := addTracker(pw, step.Ref(), roc)
 			trackersMap[step.Ref()] = t
 		}
 	}
@@ -62,8 +69,11 @@ func (a *app) Start() error {
 
 		return err
 	})
+
+	stopProgress(pw)
+
 	if err != nil {
-		return fmt.Errorf("failed to execute steps: %v", err)
+		return fmt.Errorf("failed to execute steps: %w", err)
 	}
 
 	return nil

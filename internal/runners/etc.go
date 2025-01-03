@@ -37,7 +37,7 @@ func getMounts(cfg *config.Config, volumes []string) ([]docker.Mount, error) {
 			if strings.HasPrefix(src, "./") { // Relative path for configs or sources
 				homedir, err := utils.GetHomeDir()
 				if err != nil {
-					return nil, fmt.Errorf("failed to get home dir: %v", err)
+					return nil, fmt.Errorf("failed to get home dir: %w", err)
 				}
 
 				projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
@@ -92,7 +92,7 @@ func getEnvs(projectName string, envs, env_files []string) ([]string, error) {
 		if strings.HasPrefix(envFile, "./") { // Relative path for configs or sources
 			homedir, err := utils.GetHomeDir()
 			if err != nil {
-				return nil, fmt.Errorf("failed to get home dir: %v", err)
+				return nil, fmt.Errorf("failed to get home dir: %w", err)
 			}
 
 			projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, projectName)
@@ -101,7 +101,7 @@ func getEnvs(projectName string, envs, env_files []string) ([]string, error) {
 
 		file, err := os.ReadFile(envFile)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read env file: %v", err)
+			return nil, fmt.Errorf("failed to read env file: %w", err)
 		}
 
 		for _, line := range strings.Split(string(file), "\n") {

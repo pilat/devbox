@@ -1,18 +1,20 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+
+	"golang.org/x/term"
 )
 
 func createProgress() progress.Writer {
 	pw := progress.NewWriter()
-	pw.SetMessageLength(50)
-	pw.SetSortBy(progress.SortByPercentDsc)
+	pw.SetMessageLength(100)
 	pw.SetStyle(progress.StyleDefault)
 	pw.SetTrackerPosition(progress.PositionRight)
 	pw.SetUpdateFrequency(time.Millisecond * 100)
@@ -22,12 +24,7 @@ func createProgress() progress.Writer {
 	pw.Style().Visibility.Percentage = false
 	pw.Style().Visibility.Speed = false
 	pw.Style().Visibility.SpeedOverall = false
-	pw.Style().Visibility.Tracker = false
 	pw.Style().Visibility.Value = false
-
-	pw.Style().Options.Separator = " | "
-	pw.Style().Options.DoneString = "done"
-	pw.Style().Options.ErrorString = "fail"
 
 	go pw.Render()
 
@@ -46,16 +43,22 @@ func addTracker(pw progress.Writer, message string, roc bool) *progress.Tracker 
 	return &tracker
 }
 
-func stopProgress(pw progress.Writer) func() {
-	return func() {
-		time.Sleep(110 * time.Millisecond)
-		pw.Stop()
-	}
+func stopProgress(pw progress.Writer) {
+	time.Sleep(200 * time.Millisecond)
+	pw.Stop()
+	time.Sleep(200 * time.Millisecond)
 }
 
 func makeTable(fields ...string) table.Writer {
+	w, _, err := term.GetSize(int(os.Stdin.Fd()))
+	if err != nil {
+		w = 80
+	}
+	if w > 160 {
+		w = 160
+	}
+
 	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleRounded)
 	t.Style().Options.SeparateRows = true
 
@@ -66,24 +69,27 @@ func makeTable(fields ...string) table.Writer {
 
 	t.AppendHeader(rows)
 
-	return t
-}
+	wm := w / len(fields)
 
-func renderTable(t table.Writer, width ...int) {
-	t.SortBy([]table.SortBy{
-		{Name: "Name", Mode: table.Asc},
-	})
-
-	configs := make([]table.ColumnConfig, len(width))
-	for i, w := range width {
+	configs := make([]table.ColumnConfig, len(fields))
+	for i := range configs {
 		configs[i] = table.ColumnConfig{
 			Number:      i + 1,
 			AlignHeader: text.AlignCenter,
 			AutoMerge:   true,
-			WidthMin:    w,
-			WidthMax:    w,
+			WidthMax:    wm - 3,
+			WidthMin:    wm - 3,
 		}
 	}
+
 	t.SetColumnConfigs(configs)
-	t.Render()
+
+	return t
+}
+
+func renderTable(t table.Writer) {
+	t.SortBy([]table.SortBy{
+		{Name: "Name", Mode: table.Asc},
+	})
+	fmt.Println(t.Render())
 }

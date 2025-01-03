@@ -36,6 +36,10 @@ func (s *volumeRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
+func (s *volumeRunner) Type() ServiceType {
+	return TypeVolume
+}
+
 func (s *volumeRunner) Start(ctx context.Context) error {
 	volumeName := fmt.Sprintf("%s-%s", s.cfg.Name, s.volume)
 
@@ -43,7 +47,7 @@ func (s *volumeRunner) Start(ctx context.Context) error {
 		Name: volumeName,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create volume: %v", err)
+		return fmt.Errorf("failed to create volume: %w", err)
 	}
 
 	return nil

@@ -44,6 +44,10 @@ func (s *imageRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
+func (s *imageRunner) Type() ServiceType {
+	return TypeImage
+}
+
 func (s *imageRunner) Start(ctx context.Context) error {
 	err := s.start(ctx)
 	if err != nil {
@@ -70,7 +74,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 
 	homedir, err := utils.GetHomeDir()
 	if err != nil {
-		return fmt.Errorf("failed to get home dir: %v", err)
+		return fmt.Errorf("failed to get home dir: %w", err)
 	}
 
 	projectPath := fmt.Sprintf("%s/.devbox/%s", homedir, s.cfg.Name)
@@ -78,7 +82,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 
 	dockerfile, err := os.ReadFile(dockerfilePath)
 	if err != nil {
-		return fmt.Errorf("failed to read Dockerfile: %v", err)
+		return fmt.Errorf("failed to read Dockerfile: %w", err)
 	}
 
 	dockerfileHeader := &tar.Header{
@@ -88,16 +92,16 @@ func (s *imageRunner) start(ctx context.Context) error {
 	}
 	err = tarWriter.WriteHeader(dockerfileHeader)
 	if err != nil {
-		return fmt.Errorf("failed to write Dockerfile header to tar: %v", err)
+		return fmt.Errorf("failed to write Dockerfile header to tar: %w", err)
 	}
 	_, err = tarWriter.Write([]byte(dockerfile))
 	if err != nil {
-		return fmt.Errorf("failed to write Dockerfile content to tar: %v", err)
+		return fmt.Errorf("failed to write Dockerfile content to tar: %w", err)
 	}
 
 	contextDir := filepath.Join(projectPath, s.container.Context)
 	if _, err := os.Stat(contextDir); os.IsNotExist(err) {
-		return fmt.Errorf("context directory not found: %v", err)
+		return fmt.Errorf("context directory not found: %w", err)
 	}
 
 	// TODO: implement .dockerignore support
@@ -121,7 +125,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create tar archive: %v", err)
+		return fmt.Errorf("failed to create tar archive: %w", err)
 	}
 
 	sort.Strings(files)
@@ -158,7 +162,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 
 	// Close the tar archive
 	if err := tarWriter.Close(); err != nil {
-		return fmt.Errorf("failed to close tar archive: %v", err)
+		return fmt.Errorf("failed to close tar archive: %w", err)
 	}
 
 	// Set up context and build options
@@ -170,7 +174,7 @@ func (s *imageRunner) start(ctx context.Context) error {
 
 	imageBuildResponse, err := s.cli.ImageBuild(ctx, contextBuffer, buildOptions)
 	if err != nil {
-		return fmt.Errorf("failed to build Docker image: %v", err)
+		return fmt.Errorf("failed to build Docker image: %w", err)
 	}
 	defer imageBuildResponse.Body.Close()
 

@@ -3,14 +3,15 @@ package main
 import (
 	"os"
 
-	"github.com/spf13/cobra"
+	"github.com/pilat/devbox/internal/pkg/cobra"
 )
 
-var root = &cobra.Command{
-	Use: "devbox",
-}
+var root = cobra.New()
 
 func main() {
+	root.Use = "devbox"
+	root.SetErrPrefix("Error has occurred while executing the command:")
+
 	if err := root.Execute(); err != nil {
 		os.Exit(1)
 	}

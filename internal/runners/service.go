@@ -41,14 +41,13 @@ func (s *serviceRunner) DependsOn() []string {
 	return s.dependsOn
 }
 
-func (s *serviceRunner) Start(ctx context.Context) error {
-	if ctx.Err() != nil {
-		return fmt.Errorf("context cancelled")
-	}
+func (s *serviceRunner) Type() ServiceType {
+	return TypeService
+}
 
-	err := s.start(ctx)
-	if err != nil {
-		return err
+func (s *serviceRunner) Start(ctx context.Context) error {
+	if err := s.start(ctx); err != nil {
+		return fmt.Errorf("service '%s' failed: %w", s.service.Name, err)
 	}
 
 	return nil
@@ -60,7 +59,7 @@ func (s *serviceRunner) Stop(ctx context.Context) error {
 		Filters: filterLabels(s.cfg.Name, "service", s.service.Name, ""),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to list containers: %v", err)
+		return fmt.Errorf("failed to list containers: %w", err)
 	}
 
 	for _, container := range list {
@@ -72,7 +71,7 @@ func (s *serviceRunner) Stop(ctx context.Context) error {
 
 		err = s.cli.ContainerRemove(ctx, container.ID)
 		if err != nil {
-			return fmt.Errorf("failed to remove container: %v", err)
+			return fmt.Errorf("failed to remove container: %w", err)
 		}
 	}
 
@@ -95,7 +94,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 	mounts, err := getMounts(s.cfg, s.service.Volumes)
 	if err != nil {
-		return fmt.Errorf("failed to get mounts: %v", err)
+		return fmt.Errorf("failed to get mounts: %w", err)
 	}
 
 	hostConfig := &docker.ContainerHostConfig{
@@ -104,7 +103,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 	env, err := getEnvs(s.cfg.Name, s.service.Environment, s.service.EnvFile)
 	if err != nil {
-		return fmt.Errorf("failed to get envs: %v", err)
+		return fmt.Errorf("failed to get envs: %w", err)
 	}
 
 	containerName := fmt.Sprintf("%s-%s", s.cfg.Name, s.service.Name)
@@ -114,7 +113,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		Filters: filterLabels(s.cfg.Name, "service", s.service.Name, containerName),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to list containers: %v", err)
+		return fmt.Errorf("failed to list containers: %w", err)
 	}
 	if len(list) > 0 {
 		return nil
@@ -172,12 +171,12 @@ func (s *serviceRunner) start(ctx context.Context) error {
 
 	containerID, err := s.cli.ContainerCreate(ctx, containerConfig, hostConfig, networkConfig, containerName)
 	if err != nil {
-		return fmt.Errorf("failed to create container: %v", err)
+		return fmt.Errorf("failed to create container: %w", err)
 	}
 
 	err = s.cli.ContainerStart(ctx, containerID)
 	if err != nil {
-		return fmt.Errorf("failed to start container: %v", err)
+		return fmt.Errorf("failed to start container: %w", err)
 	}
 
 	err = func() error {
@@ -185,7 +184,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 		for time.Now().Before(deadline) {
 			containerJSON, err := s.cli.ContainerInspect(ctx, containerID)
 			if err != nil {
-				return fmt.Errorf("failed to inspect container: %v", err)
+				return fmt.Errorf("failed to inspect container: %w", err)
 			}
 
 			health := containerJSON.State.Health
@@ -204,7 +203,7 @@ func (s *serviceRunner) start(ctx context.Context) error {
 	}()
 
 	if err != nil {
-		return fmt.Errorf("failed to wait for container to become healthy: %v", err)
+		return fmt.Errorf("failed to wait for container to become healthy: %w", err)
 	}
 
 	return nil

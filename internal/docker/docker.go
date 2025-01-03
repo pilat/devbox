@@ -50,7 +50,7 @@ func New() (*svc, error) {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Docker client: %v", err)
+		return nil, fmt.Errorf("failed to create Docker client: %w", err)
 	}
 
 	return &svc{cli: cli}, nil

@@ -29,7 +29,7 @@ func (a *app) List() error {
 		})
 	}
 
-	renderTable(t, 20, 50, 20, 30)
+	renderTable(t)
 
 	return nil
 }

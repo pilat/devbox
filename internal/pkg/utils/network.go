@@ -22,7 +22,7 @@ func ConvertToRFCHostname(input string) (string, error) {
 	// Use idna package to convert UTF-8 string to ASCII (Punycode) per RFC 3492/5891
 	ascii, err := idna.New().ToASCII(trimmed)
 	if err != nil {
-		return "", fmt.Errorf("failed to convert to RFC hostname: %v", err)
+		return "", fmt.Errorf("failed to convert to RFC hostname: %w", err)
 	}
 
 	// Split hostname into labels and validate each

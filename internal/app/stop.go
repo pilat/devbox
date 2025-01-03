@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/pilat/devbox/internal/docker"
@@ -32,11 +33,20 @@ func (a *app) Stop() error {
 	}
 
 	pw := createProgress()
-	defer stopProgress(pw)
 
 	trackersMap := make(map[string]*progress.Tracker)
 	for _, round := range plan {
 		for _, step := range round {
+			noTracker := slices.Contains([]runners.ServiceType{
+				runners.TypeVolume,
+				runners.TypeNetwork,
+				runners.TypePull,
+				runners.TypeImage,
+			}, step.Type())
+			if noTracker {
+				continue
+			}
+
 			t := addTracker(pw, step.Ref(), false)
 			trackersMap[step.Ref()] = t
 		}
@@ -46,19 +56,27 @@ func (a *app) Stop() error {
 	err = depgraph.ExecReverse(ctx, plan, func(ctx context.Context, r runners.Runner) error {
 		t := trackersMap[r.Ref()]
 
-		t.Start()
+		if t != nil {
+			t.Start()
+		}
+
 		err := r.Stop(ctx)
 
-		if err != nil {
-			t.MarkAsErrored()
-		} else {
-			t.MarkAsDone()
+		if t != nil {
+			if err != nil {
+				t.MarkAsErrored()
+			} else {
+				t.MarkAsDone()
+			}
 		}
 
 		return err
 	})
+
+	stopProgress(pw)
+
 	if err != nil {
-		return fmt.Errorf("failed to execute steps: %v", err)
+		return fmt.Errorf("failed to execute steps: %w", err)
 	}
 
 	return nil
