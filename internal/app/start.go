@@ -16,11 +16,6 @@ func (a *app) Start() error {
 		return ErrProjectIsNotSet
 	}
 
-	err := a.update()
-	if err != nil {
-		return fmt.Errorf("failed to update project: %w", err)
-	}
-
 	d, err := container.New()
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)

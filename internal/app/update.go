@@ -7,9 +7,13 @@ import (
 	"github.com/pilat/devbox/internal/pkg/git"
 )
 
-func (a *app) update() error {
+func (a *app) UpdateProject() error {
 	if a.projectPath == "" {
 		return ErrProjectIsNotSet
+	}
+
+	if !a.isProjectExists() {
+		return fmt.Errorf("failed to get project path")
 	}
 
 	git := git.New(a.projectPath)

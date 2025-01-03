@@ -15,11 +15,6 @@ func (a *app) Info() error {
 		return ErrProjectIsNotSet
 	}
 
-	err := a.update()
-	if err != nil {
-		return fmt.Errorf("failed to update project: %w", err)
-	}
-
 	hasMounts := false
 	sourcesTable := makeTable("Name", "Message", "Author", "Date")
 	mountsTable := makeTable("Name", "Local path")

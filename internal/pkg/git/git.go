@@ -120,7 +120,7 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 }
 
 func (s *svc) Pull(ctx context.Context) error {
-	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "pull")
+	out, err := utils.Exec(ctx, "git", "-C", s.targetPath, "pull", "--rebase")
 	if err != nil {
 		return fmt.Errorf("failed to pull: %s %w", out, err)
 	}

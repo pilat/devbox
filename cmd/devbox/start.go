@@ -22,6 +22,10 @@ func init() {
 				return err
 			}
 
+			if err := app.UpdateProject(); err != nil {
+				return err
+			}
+
 			if err := app.LoadProject(); err != nil {
 				return err
 			}
