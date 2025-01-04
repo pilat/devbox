@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/pilat/devbox/internal/pkg/git"
+	"github.com/pilat/devbox/internal/term"
 )
 
 func (a *app) List() error {
@@ -16,7 +16,7 @@ func (a *app) List() error {
 		return fmt.Errorf("failed to get projects: %w", err)
 	}
 
-	t := makeTable("Name", "Message", "Author", "Date")
+	t := term.NewTable("Name", "Message", "Author", "Date")
 	for _, project := range projects {
 		git := git.New(filepath.Join(a.homeDir, appFolder, project))
 		info, err := git.GetInfo(context.TODO())
@@ -24,12 +24,10 @@ func (a *app) List() error {
 			return fmt.Errorf("failed to get git info: %w", err)
 		}
 
-		t.AppendRow(table.Row{
-			project, info.Message, info.Author, info.Date,
-		})
+		t.AppendRow(project, info.Message, info.Author, info.Date)
 	}
 
-	renderTable(t)
+	t.Write()
 
 	return nil
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +29,14 @@ func init() {
 				return err
 			}
 
-			return app.Unmount(sourceName)
+			fmt.Println("Unmounting source...")
+			if err := app.Unmount(sourceName); err != nil {
+				return err
+			}
+
+			fmt.Println("")
+
+			return app.Info()
 		},
 	}
 

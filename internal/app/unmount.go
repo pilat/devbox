@@ -1,6 +1,9 @@
 package app
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 func (a *app) Unmount(sourceName string) error {
 	if sourceName == "" {
@@ -12,9 +15,12 @@ func (a *app) Unmount(sourceName string) error {
 		}
 	}
 
-	if _, ok := a.state.Mounts[sourceName]; !ok {
+	curPath, ok := a.state.Mounts[sourceName]
+	if !ok {
 		return fmt.Errorf("source %s is not mounted", sourceName)
 	}
+
+	affectedServices := a.getAffectedServices(curPath)
 
 	delete(a.state.Mounts, sourceName)
 
@@ -22,5 +28,12 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("failed to save state: %w", err)
 	}
 
-	return a.Info()
+	a.LoadProject()
+
+	ctx := context.TODO()
+	if err := a.restartServices(ctx, affectedServices); err != nil {
+		return fmt.Errorf("failed to restart services: %w", err)
+	}
+
+	return nil
 }

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
+	"strings"
 
-	"github.com/pilat/devbox/internal/config"
-	"github.com/pilat/devbox/internal/pkg/git"
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/pilat/devbox/internal/composer"
 	"github.com/pilat/devbox/internal/pkg/utils"
 	"github.com/pilat/devbox/internal/state"
 )
@@ -26,9 +26,11 @@ type app struct { // TODO: rename to app
 	homeDir string
 
 	// only for project
+	project *types.Project
+	sources composer.SourceConfigs
+
 	projectName string
 	projectPath string
-	cfg         *config.Config
 	state       *state.State
 }
 
@@ -41,6 +43,12 @@ func New() (*app, error) {
 	return &app{
 		homeDir: homeDir,
 	}, nil
+}
+
+func (a *app) Clone() *app {
+	return &app{
+		homeDir: a.homeDir,
+	}
 }
 
 func (a *app) WithProject(name string) error {
@@ -68,14 +76,15 @@ func (a *app) LoadProject() error {
 		return fmt.Errorf("failed to get project path")
 	}
 
-	configFile := filepath.Join(a.projectPath, "devbox.yaml")
-	cfg, err := config.New(configFile)
+	project, err := composer.Load(context.Background(), a.projectPath, a.projectName)
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return fmt.Errorf("failed to load project: %w", err)
 	}
-	a.cfg = cfg
-	a.cfg.Name = a.projectName
-	a.cfg.NetworkName = fmt.Sprintf("devbox-%s", a.cfg.Name)
+	a.project = project
+
+	if s, ok := a.project.Extensions["x-devbox-sources"]; ok {
+		a.sources = s.(composer.SourceConfigs)
+	}
 
 	stateFile := filepath.Join(a.projectPath, ".devboxstate")
 	state, err := state.New(stateFile)
@@ -84,45 +93,52 @@ func (a *app) LoadProject() error {
 	}
 	a.state = state
 
-	return nil
-}
+	// Replace "mounted" sources
+	fullPathToSources := filepath.Join(a.projectPath, sourcesDir) + "/"
+	for _, service := range a.project.Services {
+		for i := range service.Volumes {
+			volume := &service.Volumes[i]
 
-func (a *app) UpdateSources() error {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	pw := createProgress()
-
-	var errCh = make(chan error, len(a.cfg.Sources))
-	for _, src := range a.cfg.Sources {
-		t := addTracker(pw, " Syncing "+src.Name, true)
-		t.Start()
-		go func(src config.SourceConfig) {
-			targetPath := filepath.Join(a.projectPath, sourcesDir, src.Name)
-
-			git := git.New(targetPath)
-			err := git.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
-
-			if err != nil {
-				t.MarkAsErrored()
-			} else {
-				t.MarkAsDone()
+			if volume.Type != "bind" || !strings.HasPrefix(volume.Source, fullPathToSources) {
+				continue
 			}
 
-			errCh <- err
-		}(src)
-	}
+			sourceName := strings.TrimPrefix(volume.Source, fullPathToSources)
+			sourceName = strings.Split(sourceName, "/")[0]
 
-	for i := 0; i < len(a.cfg.Sources); i++ {
-		if err := <-errCh; err != nil {
-			return fmt.Errorf("failed to sync source: %w", err)
+			altMountPath, ok := a.state.Mounts[sourceName]
+			if !ok {
+				continue
+			}
+
+			volume.Source = altMountPath
 		}
 	}
 
-	stopProgress(pw)
-
 	return nil
+}
+
+func (a *app) getAffectedServices(path string) []string {
+	affectedServices := []string{}
+
+	for _, service := range a.project.Services {
+		isAffected := false
+		for i := range service.Volumes {
+			volume := &service.Volumes[i]
+
+			// has prefix is using because mount path can be .devbox/sources/sourceName/sub/path
+			if volume.Type == "bind" && strings.HasPrefix(volume.Source, path) {
+				isAffected = true
+				break
+			}
+		}
+
+		if isAffected {
+			affectedServices = append(affectedServices, service.Name)
+		}
+	}
+
+	return affectedServices
 }
 
 func (a *app) isProjectExists() bool {

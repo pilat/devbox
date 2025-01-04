@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -33,6 +35,8 @@ func init() {
 			if err := app.UpdateSources(); err != nil {
 				return err
 			}
+
+			fmt.Println("")
 
 			return app.Info()
 		},

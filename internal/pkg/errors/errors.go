@@ -23,16 +23,21 @@ func asStacktrace(err error, padding int) string {
 	errMsg := err.Error()
 	if len(errs) > 0 {
 		firstInnerErrMsg := errs[0].Error()
-		if pos := strings.Index(errMsg, firstInnerErrMsg); pos != -1 {
+		if pos := strings.LastIndex(errMsg, firstInnerErrMsg); pos != -1 {
 			errMsg = errMsg[:pos]
 		}
 
 		errMsg = strings.TrimSpace(errMsg)
 	}
 
-	out += strings.Repeat(" ", padding) + errMsg + "\n"
+	// some errors may have no inner message, we are skipping them
+	if errMsg != "" {
+		out += strings.Repeat(" ", padding) + errMsg + "\n"
+		padding += 2
+	}
+
 	for _, err := range errs {
-		out += asStacktrace(err, padding+2)
+		out += asStacktrace(err, padding)
 	}
 
 	return out

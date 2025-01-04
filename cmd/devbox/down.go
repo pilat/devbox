@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -9,7 +11,7 @@ func init() {
 	var name string
 
 	cmd := &cobra.Command{
-		Use:   "stop",
+		Use:   "down",
 		Short: "Stop devbox project",
 		Long:  "That command will stop devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -26,7 +28,8 @@ func init() {
 				return err
 			}
 
-			return app.Stop()
+			fmt.Println("Stopping project...")
+			return app.Down()
 		},
 	}
 

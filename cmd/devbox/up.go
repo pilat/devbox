@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -9,7 +11,7 @@ func init() {
 	var name string
 
 	cmd := &cobra.Command{
-		Use:   "start",
+		Use:   "up",
 		Short: "Start devbox project",
 		Long:  "That command will start devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -30,11 +32,22 @@ func init() {
 				return err
 			}
 
+			fmt.Println("Updating sources...")
 			if err := app.UpdateSources(); err != nil {
 				return err
 			}
 
-			return app.Start()
+			fmt.Println("")
+
+			fmt.Println("Building project...")
+			if err := app.Build(); err != nil {
+				return err
+			}
+
+			fmt.Println("")
+
+			fmt.Println("Starting project...")
+			return app.Up()
 		},
 	}
 

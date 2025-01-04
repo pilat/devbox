@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/pilat/devbox/internal/pkg/git"
+	"github.com/pilat/devbox/internal/term"
 )
 
 func (a *app) Info() error {
@@ -16,42 +16,38 @@ func (a *app) Info() error {
 	}
 
 	hasMounts := false
-	sourcesTable := makeTable("Name", "Message", "Author", "Date")
-	mountsTable := makeTable("Name", "Local path")
-	for _, source := range a.cfg.Sources {
-		repoPath := filepath.Join(a.projectPath, sourcesDir, source.Name)
+	sourcesTable := term.NewTable("Name", "Message", "Author", "Date")
+	mountsTable := term.NewTable("Name", "Local path")
+	for name, source := range a.sources {
+		repoPath := filepath.Join(a.projectPath, sourcesDir, name)
 		git := git.New(repoPath)
 		info, err := git.GetInfo(context.TODO())
 		if err != nil {
-			return fmt.Errorf("failed to get git info for %s: %w", source.Name, err)
+			return fmt.Errorf("failed to get git info for %s: %w", name, err)
 		}
 
-		name := source.Name
+		name := name
+		nameToDisplay := name
 		additionalInfo := strings.Join(source.SparseCheckout, ", ")
 		if additionalInfo != "" {
-			name = fmt.Sprintf("%s (%s)", name, additionalInfo)
+			nameToDisplay = fmt.Sprintf("%s (%s)", nameToDisplay, additionalInfo)
 		}
 
-		sourcesTable.AppendRow(table.Row{
-			name, info.Message, info.Author, info.Date,
-		})
+		sourcesTable.AppendRow(nameToDisplay, info.Message, info.Author, info.Date)
 
-		if localPath, ok := a.state.Mounts[source.Name]; ok {
+		if localPath, ok := a.state.Mounts[name]; ok {
 			hasMounts = true
-			mountsTable.AppendRow(table.Row{
-				source.Name, localPath,
-			})
+			mountsTable.AppendRow(name, localPath)
 		}
 	}
 
-	fmt.Println("")
 	fmt.Println(" Sources:")
-	renderTable(sourcesTable)
+	sourcesTable.Write()
 
 	if hasMounts {
 		fmt.Println("")
 		fmt.Println(" Mounts:")
-		renderTable(mountsTable)
+		mountsTable.Write()
 	}
 
 	return nil

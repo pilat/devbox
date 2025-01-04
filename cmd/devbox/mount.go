@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +30,14 @@ func init() {
 				return err
 			}
 
-			return app.Mount(sourceName, targetPath)
+			fmt.Println("Mounting source...")
+			if err := app.Mount(sourceName, targetPath); err != nil {
+				return err
+			}
+
+			fmt.Println("")
+
+			return app.Info()
 		},
 	}
 

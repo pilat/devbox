@@ -1,8 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+
+	"github.com/pilat/devbox/internal/composer"
 )
 
 func (a *app) Mount(sourceName, path string) error {
@@ -23,15 +27,39 @@ func (a *app) Mount(sourceName, path string) error {
 		path = curDir
 	}
 
+	if _, ok := a.state.Mounts[sourceName]; ok {
+		return fmt.Errorf("source %s already mounted", sourceName)
+	}
+
 	a.state.Mounts[sourceName] = path
 
 	if err := a.state.Save(); err != nil {
 		return fmt.Errorf("failed to save state: %w", err)
 	}
 
-	// TODO:
-	// What entities are directly affected to that mounts?
-	// We should restart them and all services depending on them.
+	ctx := context.TODO()
 
-	return a.Info()
+	fullPathToSources := filepath.Join(a.projectPath, sourcesDir, sourceName)
+	affectedServices := a.getAffectedServices(fullPathToSources)
+
+	a.LoadProject()
+
+	if err := a.restartServices(ctx, affectedServices); err != nil {
+		return fmt.Errorf("failed to restart services: %w", err)
+	}
+
+	return nil
+}
+
+func (a *app) restartServices(ctx context.Context, affectedServices []string) error {
+	if len(affectedServices) == 0 {
+		return fmt.Errorf("no services affected what is not expected")
+	}
+
+	err := composer.Restart(ctx, a.project, affectedServices)
+	if err != nil {
+		return fmt.Errorf("failed to restart services: %w", err)
+	}
+
+	return nil
 }

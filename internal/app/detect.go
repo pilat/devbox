@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pilat/devbox/internal/config"
 	"github.com/pilat/devbox/internal/pkg/git"
-	"github.com/pilat/devbox/internal/state"
 )
 
 func (a *app) autodetect() (string, string, error) {
@@ -23,6 +21,16 @@ func (a *app) autodetect() (string, string, error) {
 		return "", "", fmt.Errorf("failed to get projects: %w", err)
 	}
 
+	apps := make([]*app, 0)
+	for _, projectName := range projects {
+		app, err := a.getAppByName(projectName)
+		if err != nil {
+			continue
+		}
+
+		apps = append(apps, app)
+	}
+
 	ambiguous := false
 
 	// if the current dir is a source of one project
@@ -30,21 +38,15 @@ func (a *app) autodetect() (string, string, error) {
 		foundProject := ""
 		foundSource := ""
 
-		for _, project := range projects {
-			stateFile := filepath.Join(a.homeDir, appFolder, project, ".devboxstate")
-			state, err := state.New(stateFile)
-			if err != nil {
-				continue
-			}
-
-			for k, v := range state.Mounts {
+		for _, app := range apps {
+			for k, v := range app.state.Mounts {
 				if v == curDir {
 					if foundProject != "" {
 						ambiguous = true
 						return "", "" // ambiguous project
 					}
 
-					foundProject = project
+					foundProject = app.projectName
 					foundSource = k
 				}
 			}
@@ -89,15 +91,9 @@ func (a *app) autodetect() (string, string, error) {
 		foundProject := ""
 		foundSource := ""
 
-		for _, project := range projects {
-			manifestFile := filepath.Join(a.homeDir, appFolder, project, "devbox.yaml")
-			cfg, err := config.New(manifestFile)
-			if err != nil {
-				continue
-			}
-
-			for _, source := range cfg.Sources {
-				sourcePath := filepath.Join(a.homeDir, appFolder, project, sourcesDir, source.Name)
+		for _, app := range apps {
+			for name, source := range app.sources {
+				sourcePath := filepath.Join(app.projectPath, sourcesDir, name)
 				g := git.New(sourcePath)
 				remoteURLCurrent, err := g.GetRemote(context.TODO())
 				if err != nil {
@@ -115,8 +111,8 @@ func (a *app) autodetect() (string, string, error) {
 						return "", "" // ambiguous project
 					}
 
-					foundProject = project
-					foundSource = source.Name
+					foundProject = app.projectName
+					foundSource = name
 					continue
 				}
 
@@ -128,8 +124,8 @@ func (a *app) autodetect() (string, string, error) {
 							return "", "" // ambiguous project
 						}
 
-						foundProject = project
-						foundSource = source.Name
+						foundProject = app.projectName
+						foundSource = name
 						break
 					}
 				}
@@ -148,4 +144,23 @@ func (a *app) autodetect() (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("project not found")
+}
+
+func (a *app) getAppByName(projectName string) (*app, error) {
+	if projectName == "" {
+		return nil, fmt.Errorf("project name should be set")
+	}
+
+	a2 := a.Clone()
+	err := a2.WithProject(projectName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a2.LoadProject()
+	if err != nil {
+		return nil, err
+	}
+
+	return a2, nil
 }
