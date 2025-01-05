@@ -123,34 +123,6 @@ func (a *app) LoadProject() error {
 	return nil
 }
 
-func (a *app) restart(services []string) error {
-	projectWithServices, err := a.project.WithSelectedServices(services, types.IncludeDependents)
-	if err != nil {
-		return fmt.Errorf("failed to select services: %w", err)
-	}
-
-	a.project = projectWithServices
-
-	networksBackup := a.project.Networks
-	a.project.Networks = types.Networks{} // to avoid an attempt to remove network
-
-	if err := a.Down(); err != nil {
-		return err
-	}
-
-	a.project.Networks = networksBackup // network is needed for Up
-
-	if err := a.Build(); err != nil {
-		return err
-	}
-
-	if err := a.Up(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (a *app) servicesAffectedByMounts(path string) []string {
 	affectedServices := []string{}
 

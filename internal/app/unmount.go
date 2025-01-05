@@ -31,7 +31,7 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 
-	if err := a.restart(affectedServices); err != nil {
+	if err := a.Restart(affectedServices, false); err != nil {
 		return fmt.Errorf("failed to restart services: %w", err)
 	}
 

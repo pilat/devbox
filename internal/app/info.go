@@ -17,6 +17,11 @@ func (a *app) Info() error {
 
 	hasMounts := false
 	sourcesTable := table.New("Name", "Message", "Author", "Date")
+	sourcesTable.SortBy([]table.SortBy{
+		{Name: "Message", Mode: table.Asc},
+		{Name: "Name", Mode: table.Asc},
+	})
+
 	mountsTable := table.New("Name", "Local path")
 	for name, source := range a.sources {
 		repoPath := filepath.Join(a.projectPath, sourcesDir, name)
@@ -42,12 +47,12 @@ func (a *app) Info() error {
 	}
 
 	fmt.Println(" Sources:")
-	sourcesTable.Write()
+	sourcesTable.Render()
 
 	if hasMounts {
 		fmt.Println("")
 		fmt.Println(" Mounts:")
-		mountsTable.Write()
+		mountsTable.Render()
 	}
 
 	return nil

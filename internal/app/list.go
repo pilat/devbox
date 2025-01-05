@@ -27,7 +27,7 @@ func (a *app) List() error {
 		t.AppendRow(project, info.Message, info.Author, info.Date)
 	}
 
-	t.Write()
+	t.Render()
 
 	return nil
 }
