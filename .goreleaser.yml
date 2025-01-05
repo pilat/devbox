@@ -1,0 +1,48 @@
+version: 2
+
+before:
+  hooks:
+    - go mod vendor
+    - rm -f ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_darwin.go
+    - sed -i.bak '/build.*darwin/d' ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_naive.go
+    - rm -f ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_naive.go.bak
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    main: ./cmd/devbox/
+    goarch:
+      - amd64
+      - arm64
+    goos:
+      - linux
+      - darwin
+
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+
+release:
+  github:
+    owner: pilat
+    name: devbox
+
+brews:
+  - name: devbox
+    commit_author:
+      name: Vladimir Urushev
+      email: vkurushev@gmail.com
+    repository:
+      owner: pilat
+      name: homebrew-devbox
+      token: "{{ .Env.CICD_HOMEBREW_GITHUB_TOKEN }}"

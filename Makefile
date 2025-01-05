@@ -22,3 +22,7 @@ $(gz_releases): %.tar.gz : %
 
 .PHONY: releases
 releases: $(gz_releases)
+
+
+release:
+	goreleaser --clean
