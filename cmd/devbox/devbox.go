@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/pilat/devbox/internal/pkg/cobra"
+	"github.com/pilat/devbox/internal/cobra"
 )
 
 var root = cobra.New()

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pilat/devbox/internal/pkg/git"
-	"github.com/pilat/devbox/internal/term"
+	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/table"
 )
 
 func (a *app) Info() error {
@@ -16,8 +16,8 @@ func (a *app) Info() error {
 	}
 
 	hasMounts := false
-	sourcesTable := term.NewTable("Name", "Message", "Author", "Date")
-	mountsTable := term.NewTable("Name", "Local path")
+	sourcesTable := table.New("Name", "Message", "Author", "Date")
+	mountsTable := table.New("Name", "Local path")
 	for name, source := range a.sources {
 		repoPath := filepath.Join(a.projectPath, sourcesDir, name)
 		git := git.New(repoPath)

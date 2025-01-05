@@ -10,7 +10,7 @@ import (
 	"github.com/docker/cli/cli/streams"
 	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/pilat/devbox/internal/composer"
-	"github.com/pilat/devbox/internal/pkg/git"
+	"github.com/pilat/devbox/internal/git"
 )
 
 func (a *app) UpdateProject() error {

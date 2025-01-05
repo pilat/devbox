@@ -21,5 +21,4 @@ func (a *app) Up() error {
 	}
 
 	return nil
-
 }

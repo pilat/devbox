@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pilat/devbox/internal/pkg/git"
+	"github.com/pilat/devbox/internal/git"
 )
 
 func (a *app) autodetect() (string, string, error) {

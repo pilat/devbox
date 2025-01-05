@@ -20,7 +20,7 @@ func init() {
 		Long:  "That command will clone devbox project from git to your ~/.devbox directory and will keep it up to date",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
-				cmd.Help()
+				_ = cmd.Help()
 				os.Exit(0)
 			}
 		},
@@ -37,7 +37,7 @@ func init() {
 			}
 
 			if !validateName(name) {
-				return fmt.Errorf("Invalid project name: %s", name)
+				return fmt.Errorf("invalid project name: %s", name)
 			}
 
 			if err := app.WithProject(name); err != nil {

@@ -3,6 +3,7 @@ package composer
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
@@ -13,11 +14,18 @@ func Restart(ctx context.Context, project *types.Project, services []string) err
 	defer cancel()
 
 	composer, err := getClient()
+	if err != nil {
+		return fmt.Errorf("failed to get client: %w", err)
+	}
+
+	projectWithServices, err := project.WithSelectedServices(services)
+	if err != nil {
+		return fmt.Errorf("failed to select services: %w", err)
+	}
 
 	psOpts := api.PsOptions{
-		Project:  project,
-		Services: services,
-		All:      true,
+		Project: project,
+		All:     true,
 	}
 
 	info, err := composer.Ps(ctx, project.Name, psOpts)
@@ -25,34 +33,38 @@ func Restart(ctx context.Context, project *types.Project, services []string) err
 		return fmt.Errorf("failed to get services info: %w", err)
 	}
 
-	// If any of the services is not in the list we are probably not running
-	notInList := false
-	for _, service := range services {
-		found := false
-		for _, s := range info {
-			name := getServiceName(s.Name, project)
-			if name == service {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			notInList = true
-			break
-		}
+	if len(info) == 0 {
+		return nil // service is not running
 	}
 
-	if notInList {
-		return nil
+	downTimeout := 0 * time.Minute
+	downOpts := api.DownOptions{
+		Project:       projectWithServices,
+		Timeout:       &downTimeout,
+		Services:      services,
+		RemoveOrphans: false,
 	}
 
-	restartOpts := api.RestartOptions{
-		Services: services,
+	if err := composer.Down(ctx, project.Name, downOpts); err != nil {
+		return fmt.Errorf("failed to down selected services: %w", err)
 	}
 
-	if err = composer.Restart(ctx, project.Name, restartOpts); err != nil {
-		return fmt.Errorf("failed to build services: %w", err)
+	upTimeout := 4 * time.Minute
+	upOpts := api.UpOptions{
+		Create: api.CreateOptions{
+			QuietPull: true,
+			Timeout:   &upTimeout,
+			Inherit:   false,
+		},
+		Start: api.StartOptions{
+			Project:     projectWithServices,
+			Wait:        true,
+			WaitTimeout: upTimeout,
+		},
+	}
+
+	if err := composer.Up(ctx, projectWithServices, upOpts); err != nil {
+		return fmt.Errorf("failed to up selected services: %w", err)
 	}
 
 	return nil

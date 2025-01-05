@@ -1,4 +1,4 @@
-package term
+package table
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ type tableSvc struct {
 
 var _ Table = &tableSvc{}
 
-func NewTable(fields ...string) *tableSvc {
+func New(fields ...string) *tableSvc {
 	w, _, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil {
 		w = 80

@@ -28,7 +28,9 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("failed to save state: %w", err)
 	}
 
-	a.LoadProject()
+	if err := a.LoadProject(); err != nil {
+		return fmt.Errorf("failed to reload project: %w", err)
+	}
 
 	ctx := context.TODO()
 	if err := a.restartServices(ctx, affectedServices); err != nil {

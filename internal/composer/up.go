@@ -14,6 +14,9 @@ func Up(ctx context.Context, project *types.Project) error {
 	defer cancel()
 
 	composer, err := getClient()
+	if err != nil {
+		return fmt.Errorf("failed to get client: %w", err)
+	}
 
 	timeout := 4 * time.Minute
 	opts := api.UpOptions{

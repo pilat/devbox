@@ -9,8 +9,8 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/pilat/devbox/internal/composer"
-	"github.com/pilat/devbox/internal/pkg/utils"
 	"github.com/pilat/devbox/internal/state"
+	"github.com/pilat/devbox/internal/sys"
 )
 
 const (
@@ -35,7 +35,7 @@ type app struct { // TODO: rename to app
 }
 
 func New() (*app, error) {
-	homeDir, err := utils.GetHomeDir()
+	homeDir, err := sys.GetHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home dir: %w", err)
 	}
@@ -83,7 +83,12 @@ func (a *app) LoadProject() error {
 	a.project = project
 
 	if s, ok := a.project.Extensions["x-devbox-sources"]; ok {
-		a.sources = s.(composer.SourceConfigs)
+		coercedSources, ok := s.(composer.SourceConfigs)
+		if !ok {
+			return fmt.Errorf("failed to coerce sources")
+		}
+
+		a.sources = coercedSources
 	}
 
 	stateFile := filepath.Join(a.projectPath, ".devboxstate")

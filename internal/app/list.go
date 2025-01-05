@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pilat/devbox/internal/pkg/git"
-	"github.com/pilat/devbox/internal/term"
+	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/table"
 )
 
 func (a *app) List() error {
@@ -16,7 +16,7 @@ func (a *app) List() error {
 		return fmt.Errorf("failed to get projects: %w", err)
 	}
 
-	t := term.NewTable("Name", "Message", "Author", "Date")
+	t := table.New("Name", "Message", "Author", "Date")
 	for _, project := range projects {
 		git := git.New(filepath.Join(a.homeDir, appFolder, project))
 		info, err := git.GetInfo(context.TODO())

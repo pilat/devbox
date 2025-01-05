@@ -1,7 +1,7 @@
 package cobra
 
 import (
-	"github.com/pilat/devbox/internal/pkg/errors"
+	"github.com/pilat/devbox/internal/errors"
 	"github.com/spf13/cobra"
 )
 
