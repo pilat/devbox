@@ -6,7 +6,6 @@ require (
 	github.com/compose-spec/compose-go/v2 v2.4.6
 	github.com/docker/cli v27.4.0+incompatible
 	github.com/docker/compose/v2 v2.32.1
-	github.com/fatih/color v1.18.0
 	github.com/jedib0t/go-pretty/v6 v6.6.5
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
