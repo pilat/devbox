@@ -14,9 +14,7 @@ func (a *app) Up() error {
 
 	ctx := context.TODO()
 
-	err := composer.Up(ctx, a.project)
-
-	if err != nil {
+	if err := composer.Up(ctx, a.project); err != nil {
 		return fmt.Errorf("failed to up services: %w", err)
 	}
 

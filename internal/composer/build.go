@@ -22,9 +22,12 @@ func Build(ctx context.Context, project *types.Project, services []string) error
 		Quiet:    true,
 	}
 
+	fmt.Println("Build services...")
 	if err = composer.Build(ctx, project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
+
+	fmt.Println("")
 
 	return nil
 }

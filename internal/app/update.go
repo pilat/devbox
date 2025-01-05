@@ -42,8 +42,16 @@ func (a *app) UpdateSources() error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute) // TODO
 	defer cancel()
 
+	fmt.Println("Updating sources...")
+
 	out := streams.NewOut(os.Stdout)
-	return progress.RunWithTitle(ctx, a.updateSources, out, "Updating sources")
+	if err := progress.RunWithTitle(ctx, a.updateSources, out, "Updating sources"); err != nil {
+		return fmt.Errorf("failed to update sources: %w", err)
+	}
+
+	fmt.Println("")
+
+	return nil
 }
 
 func (a *app) updateSources(ctx context.Context) error {

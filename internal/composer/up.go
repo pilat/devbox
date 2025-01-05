@@ -33,9 +33,12 @@ func Up(ctx context.Context, project *types.Project) error {
 		},
 	}
 
+	fmt.Println("Up services...")
 	if err = composer.Up(ctx, project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
+
+	fmt.Println("")
 
 	return nil
 }

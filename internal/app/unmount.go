@@ -1,7 +1,6 @@
 package app
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -20,7 +19,7 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("source %s is not mounted", sourceName)
 	}
 
-	affectedServices := a.getAffectedServices(curPath)
+	affectedServices := a.servicesAffectedByMounts(curPath)
 
 	delete(a.state.Mounts, sourceName)
 
@@ -32,8 +31,7 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 
-	ctx := context.TODO()
-	if err := a.restartServices(ctx, affectedServices); err != nil {
+	if err := a.restart(affectedServices); err != nil {
 		return fmt.Errorf("failed to restart services: %w", err)
 	}
 

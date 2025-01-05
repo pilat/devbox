@@ -3,8 +3,6 @@ package composer
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -13,47 +11,38 @@ import (
 )
 
 func Load(ctx context.Context, projectPath, name string) (*types.Project, error) {
-	dockerComposeFile := filepath.Join(projectPath, "docker-compose.yaml")
-	if _, err := os.Stat(dockerComposeFile); err != nil {
-		return nil, fmt.Errorf("failed to find Compose file %s: %w", dockerComposeFile, err)
-	}
-
-	opts, err := cli.NewProjectOptions(
-		[]string{dockerComposeFile},
+	o, err := cli.NewProjectOptions(
+		[]string{},
+		cli.WithWorkingDirectory(projectPath),
+		cli.WithDefaultConfigPath,
 		cli.WithName(name),
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
-		cli.WithWorkingDirectory(projectPath),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compose project options: %w", err)
 	}
 
-	project, err := cli.ProjectFromOptions(ctx, opts)
+	project, err := cli.ProjectFromOptions(ctx, o)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compose project: %w", err)
 	}
 
-	for i, service := range project.Services {
-		service.CustomLabels = map[string]string{
-			api.ProjectLabel:    project.Name,
-			api.ServiceLabel:    service.Name,
-			api.WorkingDirLabel: project.WorkingDir,
-			api.OneoffLabel:     "False",
+	for name, s := range project.Services {
+		s.CustomLabels = map[string]string{
+			api.ProjectLabel:     project.Name,
+			api.ServiceLabel:     name,
+			api.VersionLabel:     api.ComposeVersion,
+			api.WorkingDirLabel:  project.WorkingDir,
+			api.ConfigFilesLabel: strings.Join(project.ComposeFiles, ","),
+			api.OneoffLabel:      "False",
 		}
-		project.Services[i] = service
+		if len(o.EnvFiles) != 0 {
+			s.CustomLabels[api.EnvironmentFileLabel] = strings.Join(o.EnvFiles, ",")
+		}
+		project.Services[name] = s
 	}
 
 	return project, nil
-}
-
-func getServiceName(name string, project *types.Project) string {
-	name = strings.TrimPrefix(name, project.Name+api.Separator)
-
-	if rIdx := strings.LastIndex(name, "-"); rIdx != -1 {
-		name = name[:rIdx]
-	}
-
-	return name
 }

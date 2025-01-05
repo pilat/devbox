@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -28,7 +26,6 @@ func init() {
 				return err
 			}
 
-			fmt.Println("Stopping project...")
 			return app.Down()
 		},
 	}

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -32,21 +30,14 @@ func init() {
 				return err
 			}
 
-			fmt.Println("Updating sources...")
 			if err := app.UpdateSources(); err != nil {
 				return err
 			}
 
-			fmt.Println("")
-
-			fmt.Println("Building project...")
 			if err := app.Build(); err != nil {
 				return err
 			}
 
-			fmt.Println("")
-
-			fmt.Println("Starting project...")
 			return app.Up()
 		},
 	}
