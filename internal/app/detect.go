@@ -92,7 +92,7 @@ func (a *app) autodetect() (string, string, error) {
 		foundSource := ""
 
 		for _, app := range apps {
-			for name, source := range app.sources {
+			for name, source := range app.project.Sources {
 				sourcePath := filepath.Join(app.projectPath, sourcesDir, name)
 				g := git.New(sourcePath)
 				remoteURLCurrent, err := g.GetRemote(context.TODO())

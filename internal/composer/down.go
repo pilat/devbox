@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Down(ctx context.Context, project *types.Project) error {
+func Down(ctx context.Context, project *Project) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -19,7 +18,7 @@ func Down(ctx context.Context, project *types.Project) error {
 
 	// we are not overriding timeout allowing users to define it with stop_grace_period by user
 	opts := api.DownOptions{
-		Project:       project,
+		Project:       project.Project,
 		RemoveOrphans: true,
 	}
 

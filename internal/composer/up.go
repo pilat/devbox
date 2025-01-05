@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Up(ctx context.Context, project *types.Project) error {
+func Up(ctx context.Context, project *Project) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -27,14 +26,14 @@ func Up(ctx context.Context, project *types.Project) error {
 			Inherit:       false,
 		},
 		Start: api.StartOptions{
-			Project:     project,
+			Project:     project.Project,
 			Wait:        true,
 			WaitTimeout: timeout,
 		},
 	}
 
 	fmt.Println("Up services...")
-	if err = composer.Up(ctx, project, opts); err != nil {
+	if err = composer.Up(ctx, project.Project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
 

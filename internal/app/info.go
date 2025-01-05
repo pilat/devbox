@@ -23,7 +23,7 @@ func (a *app) Info() error {
 	})
 
 	mountsTable := table.New("Name", "Local path")
-	for name, source := range a.sources {
+	for name, source := range a.project.Sources {
 		repoPath := filepath.Join(a.projectPath, sourcesDir, name)
 		git := git.New(repoPath)
 		info, err := git.GetInfo(context.TODO())

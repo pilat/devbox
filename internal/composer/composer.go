@@ -6,11 +6,10 @@ import (
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Load(ctx context.Context, projectPath, name string) (*types.Project, error) {
+func New(ctx context.Context, projectPath, name string) (*Project, error) {
 	o, err := cli.NewProjectOptions(
 		[]string{},
 		cli.WithWorkingDirectory(projectPath),
@@ -19,6 +18,7 @@ func Load(ctx context.Context, projectPath, name string) (*types.Project, error)
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
+		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compose project options: %w", err)
@@ -44,5 +44,31 @@ func Load(ctx context.Context, projectPath, name string) (*types.Project, error)
 		project.Services[name] = s
 	}
 
-	return project, nil
+	p := &Project{
+		Project: project,
+	}
+
+	if s, ok := project.Extensions["x-devbox-sources"]; ok {
+		p.Sources = s.(SourceConfigs)
+	}
+
+	if s, ok := project.Extensions["x-devbox-default-stop-grace-period"]; ok {
+		v := s.(Duration)
+		p.DefaultStopGracePeriod = &v
+	}
+
+	// apply default grace period to all services
+	for name, s := range project.Services {
+		if s.StopGracePeriod != nil {
+			continue
+		}
+
+		if p.DefaultStopGracePeriod != nil {
+			s.StopGracePeriod = p.DefaultStopGracePeriod
+		}
+
+		project.Services[name] = s
+	}
+
+	return p, nil
 }

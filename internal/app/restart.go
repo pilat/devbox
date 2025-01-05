@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/pilat/devbox/internal/composer"
 )
 
@@ -20,9 +19,9 @@ func (a *app) Restart(services []string, noDeps bool) error {
 		return nil
 	}
 
-	depOpt := types.IncludeDependents
+	depOpt := composer.IncludeDependents
 	if noDeps { // in case of manual restart, we don't need to restart dependent services
-		depOpt = types.IgnoreDependencies
+		depOpt = composer.IgnoreDependencies
 	}
 
 	projectWithServices, err := a.project.WithSelectedServices(services, depOpt)
@@ -33,7 +32,7 @@ func (a *app) Restart(services []string, noDeps bool) error {
 	a.project = projectWithServices
 
 	networksBackup := a.project.Networks
-	a.project.Networks = types.Networks{} // to avoid an attempt to remove a network
+	a.project.Networks = composer.Networks{} // to avoid an attempt to remove a network
 
 	if err := a.Down(); err != nil {
 		return err

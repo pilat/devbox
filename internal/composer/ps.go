@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
@@ -16,14 +15,14 @@ type serviceInfo struct {
 	Health string
 }
 
-func ListServices(ctx context.Context, project *types.Project) ([]serviceInfo, error) {
+func ListServices(ctx context.Context, project *Project) ([]serviceInfo, error) {
 	composer, err := getClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	opts := api.PsOptions{
-		Project: project,
+		Project: project.Project,
 		All:     true,
 	}
 
@@ -70,14 +69,14 @@ func ListServices(ctx context.Context, project *types.Project) ([]serviceInfo, e
 	return results, nil
 }
 
-func IsRunning(ctx context.Context, project *types.Project) (bool, error) {
+func IsRunning(ctx context.Context, project *Project) (bool, error) {
 	composer, err := getClient()
 	if err != nil {
 		return false, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	opts := api.PsOptions{
-		Project: project,
+		Project: project.Project,
 	}
 
 	containers, err := composer.Ps(ctx, project.Name, opts)

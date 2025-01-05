@@ -56,15 +56,15 @@ func (a *app) UpdateSources() error {
 
 func (a *app) updateSources(ctx context.Context) error {
 	cw := progress.ContextWriter(ctx)
-	for name := range a.sources {
+	for name := range a.project.Sources {
 		cw.Event(progress.Event{
 			ID:         "Source " + name,
 			StatusText: "Syncing",
 		})
 	}
 
-	var errCh = make(chan error, len(a.sources))
-	for name, src := range a.sources {
+	var errCh = make(chan error, len(a.project.Sources))
+	for name, src := range a.project.Sources {
 		go func(name string, src composer.SourceConfig) {
 			targetPath := filepath.Join(a.projectPath, sourcesDir, name)
 
@@ -81,7 +81,7 @@ func (a *app) updateSources(ctx context.Context) error {
 		}(name, src)
 	}
 
-	for i := 0; i < len(a.sources); i++ {
+	for i := 0; i < len(a.project.Sources); i++ {
 		if err := <-errCh; err != nil {
 			return fmt.Errorf("failed to sync source: %w", err)
 		}

@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Build(ctx context.Context, project *types.Project, services []string) error {
+func Build(ctx context.Context, project *Project, services []string) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -23,7 +22,7 @@ func Build(ctx context.Context, project *types.Project, services []string) error
 	}
 
 	fmt.Println("Build services...")
-	if err = composer.Build(ctx, project, opts); err != nil {
+	if err = composer.Build(ctx, project.Project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
 

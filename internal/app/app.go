@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/pilat/devbox/internal/composer"
 	"github.com/pilat/devbox/internal/state"
 	"github.com/pilat/devbox/internal/sys"
@@ -26,9 +25,7 @@ type app struct { // TODO: rename to app
 	homeDir string
 
 	// only for project
-	project *types.Project
-	sources composer.SourceConfigs
-
+	project     *composer.Project
 	projectName string
 	projectPath string
 	state       *state.State
@@ -76,20 +73,11 @@ func (a *app) LoadProject() error {
 		return fmt.Errorf("failed to get project path")
 	}
 
-	project, err := composer.Load(context.Background(), a.projectPath, a.projectName)
+	project, err := composer.New(context.Background(), a.projectPath, a.projectName)
 	if err != nil {
 		return fmt.Errorf("failed to load project: %w", err)
 	}
 	a.project = project
-
-	if s, ok := a.project.Extensions["x-devbox-sources"]; ok {
-		coercedSources, ok := s.(composer.SourceConfigs)
-		if !ok {
-			return fmt.Errorf("failed to coerce sources")
-		}
-
-		a.sources = coercedSources
-	}
 
 	stateFile := filepath.Join(a.projectPath, ".devboxstate")
 	state, err := state.New(stateFile)
