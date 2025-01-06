@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-
-	"github.com/pilat/devbox/internal/composer"
 )
 
 func (a *app) Down() error {
@@ -14,7 +12,7 @@ func (a *app) Down() error {
 
 	ctx := context.TODO()
 
-	err := composer.Down(ctx, a.project)
+	err := a.project.Down(ctx, false)
 	if err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}

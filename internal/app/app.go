@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/pilat/devbox/internal/composer"
@@ -26,7 +27,6 @@ type app struct { // TODO: rename to app
 
 	// only for project
 	project     *composer.Project
-	projectName string
 	projectPath string
 	state       *state.State
 }
@@ -48,11 +48,7 @@ func (a *app) Clone() *app {
 	}
 }
 
-func (a *app) WithProject(name string) error {
-	if a.projectName != "" {
-		panic("project already set")
-	}
-
+func (a *app) LoadProject(name string) error {
 	if name == "" {
 		projectName, _, err := a.autodetect()
 		if err != nil {
@@ -62,18 +58,17 @@ func (a *app) WithProject(name string) error {
 		}
 	}
 
-	a.projectName = name
-	a.projectPath = filepath.Join(a.homeDir, appFolder, name)
-
-	return nil
-}
-
-func (a *app) LoadProject() error {
-	if !a.isProjectExists() {
-		return fmt.Errorf("failed to get project path")
+	if !validateName(name) {
+		return fmt.Errorf("invalid project name: %s", name)
 	}
 
-	project, err := composer.New(context.Background(), a.projectPath, a.projectName)
+	a.projectPath = filepath.Join(a.homeDir, appFolder, name)
+
+	if !isProjectExists(a.projectPath) {
+		return fmt.Errorf("project %s does not exist", name)
+	}
+
+	project, err := composer.New(context.Background(), a.projectPath, name)
 	if err != nil {
 		return fmt.Errorf("failed to load project: %w", err)
 	}
@@ -134,7 +129,11 @@ func (a *app) servicesAffectedByMounts(path string) []string {
 	return affectedServices
 }
 
-func (a *app) isProjectExists() bool {
-	_, err := os.Stat(a.projectPath)
+func isProjectExists(path string) bool {
+	_, err := os.Stat(path)
 	return err == nil
+}
+
+func validateName(name string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
 }

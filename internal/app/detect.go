@@ -46,7 +46,7 @@ func (a *app) autodetect() (string, string, error) {
 						return "", "" // ambiguous project
 					}
 
-					foundProject = app.projectName
+					foundProject = app.project.Name
 					foundSource = k
 				}
 			}
@@ -111,7 +111,7 @@ func (a *app) autodetect() (string, string, error) {
 						return "", "" // ambiguous project
 					}
 
-					foundProject = app.projectName
+					foundProject = app.project.Name
 					foundSource = name
 					continue
 				}
@@ -124,7 +124,7 @@ func (a *app) autodetect() (string, string, error) {
 							return "", "" // ambiguous project
 						}
 
-						foundProject = app.projectName
+						foundProject = app.project.Name
 						foundSource = name
 						break
 					}
@@ -152,12 +152,7 @@ func (a *app) getAppByName(projectName string) (*app, error) {
 	}
 
 	a2 := a.Clone()
-	err := a2.WithProject(projectName)
-	if err != nil {
-		return nil, err
-	}
-
-	err = a2.LoadProject()
+	err := a2.LoadProject(projectName)
 	if err != nil {
 		return nil, err
 	}

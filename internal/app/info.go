@@ -11,7 +11,7 @@ import (
 )
 
 func (a *app) Info() error {
-	if a.projectPath == "" {
+	if a.projectPath == "" || a.project == nil {
 		return ErrProjectIsNotSet
 	}
 

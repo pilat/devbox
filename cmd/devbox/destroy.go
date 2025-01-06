@@ -11,9 +11,9 @@ func init() {
 	var name string
 
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "Update devbox project sources",
-		Long:  "That command will update sources in devbox project",
+		Use:   "destroy",
+		Short: "Destroy devbox project",
+		Long:  "That command will destroy devbox project",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			app, err := app.New()
 			if err != nil {
@@ -24,16 +24,8 @@ func init() {
 				return fmt.Errorf("failed to load project: %w", err)
 			}
 
-			if err := app.UpdateProject(); err != nil {
-				return fmt.Errorf("failed to update project: %w", err)
-			}
-
-			if err := app.UpdateSources(); err != nil {
-				return fmt.Errorf("failed to update sources: %w", err)
-			}
-
-			if err := app.Info(); err != nil {
-				return fmt.Errorf("failed to get project info: %w", err)
+			if err := app.Destroy(); err != nil {
+				return fmt.Errorf("failed to destroy project: %w", err)
 			}
 
 			return nil

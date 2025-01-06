@@ -8,7 +8,7 @@ import (
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Up(ctx context.Context, project *Project) error {
+func (p *Project) Up(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -26,14 +26,14 @@ func Up(ctx context.Context, project *Project) error {
 			Inherit:       false,
 		},
 		Start: api.StartOptions{
-			Project:     project.Project,
+			Project:     p.Project,
 			Wait:        true,
 			WaitTimeout: timeout,
 		},
 	}
 
 	fmt.Println("Up services...")
-	if err = composer.Up(ctx, project.Project, opts); err != nil {
+	if err = composer.Up(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
 

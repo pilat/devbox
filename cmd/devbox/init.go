@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/pilat/devbox/internal/app"
@@ -36,15 +35,23 @@ func init() {
 				name = guessName(gitURL)
 			}
 
-			if !validateName(name) {
-				return fmt.Errorf("invalid project name: %s", name)
+			if err := app.Init(name, gitURL, branch); err != nil {
+				return fmt.Errorf("failed to init project: %w", err)
 			}
 
-			if err := app.WithProject(name); err != nil {
-				return err
+			if err := app.LoadProject(name); err != nil {
+				return fmt.Errorf("failed to load project: %w", err)
 			}
 
-			return app.Init(gitURL, branch)
+			if err := app.UpdateSources(); err != nil {
+				return fmt.Errorf("failed to update sources: %w", err)
+			}
+
+			if err := app.Info(); err != nil {
+				return fmt.Errorf("failed to get info: %w", err)
+			}
+
+			return nil
 		},
 	}
 
@@ -63,8 +70,4 @@ func guessName(source string) string {
 	}
 
 	return name
-}
-
-func validateName(name string) bool {
-	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
 }

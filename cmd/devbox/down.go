@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -18,15 +20,15 @@ func init() {
 				return err
 			}
 
-			if err := app.WithProject(name); err != nil {
-				return err
+			if err := app.LoadProject(name); err != nil {
+				return fmt.Errorf("failed to load project: %w", err)
 			}
 
-			if err := app.LoadProject(); err != nil {
-				return err
+			if err := app.Down(); err != nil {
+				return fmt.Errorf("failed to stop project: %w", err)
 			}
 
-			return app.Down()
+			return nil
 		},
 	}
 

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -19,23 +21,23 @@ func init() {
 				return err
 			}
 
-			if err := app.WithProject(name); err != nil {
-				return err
+			if err := app.LoadProject(name); err != nil {
+				return fmt.Errorf("failed to load project: %w", err)
 			}
 
 			if err := app.UpdateProject(); err != nil {
-				return err
-			}
-
-			if err := app.LoadProject(); err != nil {
-				return err
+				return fmt.Errorf("failed to update project: %w", err)
 			}
 
 			if err := app.UpdateSources(); err != nil {
-				return err
+				return fmt.Errorf("failed to update sources: %w", err)
 			}
 
-			return app.Restart(services, true)
+			if err := app.Restart(services, true); err != nil {
+				return fmt.Errorf("failed to restart services: %w", err)
+			}
+
+			return nil
 		},
 	}
 

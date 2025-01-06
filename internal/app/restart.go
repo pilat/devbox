@@ -10,7 +10,7 @@ import (
 func (a *app) Restart(services []string, noDeps bool) error {
 	ctx := context.TODO()
 
-	isRunning, err := composer.IsRunning(ctx, a.project)
+	isRunning, err := a.project.IsRunning(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}

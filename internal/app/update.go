@@ -18,7 +18,7 @@ func (a *app) UpdateProject() error {
 		return ErrProjectIsNotSet
 	}
 
-	if !a.isProjectExists() {
+	if !isProjectExists(a.projectPath) {
 		return fmt.Errorf("failed to get project path")
 	}
 
@@ -32,6 +32,10 @@ func (a *app) UpdateProject() error {
 	_, err = git.GetInfo(context.TODO())
 	if err != nil {
 		return fmt.Errorf("failed to get git info: %w", err)
+	}
+
+	if err := a.LoadProject(a.project.Name); err != nil {
+		return err
 	}
 
 	return nil

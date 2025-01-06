@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pilat/devbox/internal/composer"
 	"github.com/pilat/devbox/internal/table"
 )
 
 func (a *app) Ps() error {
 	ctx := context.TODO()
 
-	isRunning, err := composer.IsRunning(ctx, a.project)
+	isRunning, err := a.project.IsRunning(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
@@ -26,7 +25,7 @@ func (a *app) Ps() error {
 	go func() {
 		count := 0
 		for {
-			services, err := composer.ListServices(ctx, a.project)
+			services, err := a.project.ListServices(ctx)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to list services: %w", err)
 			}

@@ -3,21 +3,24 @@ package app
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/pilat/devbox/internal/git"
 )
 
-func (a *app) Init(url string, branch string) error {
-	if a.projectPath == "" {
-		return ErrProjectIsNotSet
+func (a *app) Init(name, url string, branch string) error {
+	if !validateName(name) {
+		return fmt.Errorf("invalid project name: %s", name)
 	}
 
-	if a.isProjectExists() {
+	projectPath := filepath.Join(a.homeDir, appFolder, name)
+
+	if isProjectExists(projectPath) {
 		return fmt.Errorf("project already exists")
 	}
 
 	fmt.Println(" Initializing project...")
-	git := git.New(a.projectPath)
+	git := git.New(projectPath)
 	err := git.Clone(context.TODO(), url, branch)
 	if err != nil {
 		return fmt.Errorf("failed to clone git repo: %w", err)
@@ -33,13 +36,5 @@ func (a *app) Init(url string, branch string) error {
 		return fmt.Errorf("failed to set local exclude: %w", err)
 	}
 
-	if err := a.LoadProject(); err != nil {
-		return fmt.Errorf("failed to load project: %w", err)
-	}
-
-	if err := a.UpdateSources(); err != nil {
-		return fmt.Errorf("failed to update sources: %w", err)
-	}
-
-	return a.Info()
+	return nil
 }

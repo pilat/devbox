@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +18,11 @@ func init() {
 				return err
 			}
 
-			return app.List()
+			if err := app.List(); err != nil {
+				return fmt.Errorf("failed to list projects: %w", err)
+			}
+
+			return nil
 		},
 	}
 

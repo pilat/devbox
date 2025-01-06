@@ -27,7 +27,7 @@ func (a *app) Unmount(sourceName string) error {
 		return fmt.Errorf("failed to save state: %w", err)
 	}
 
-	if err := a.LoadProject(); err != nil {
+	if err := a.LoadProject(a.project.Name); err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 

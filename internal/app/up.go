@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-
-	"github.com/pilat/devbox/internal/composer"
 )
 
 func (a *app) Up() error {
@@ -14,7 +12,11 @@ func (a *app) Up() error {
 
 	ctx := context.TODO()
 
-	if err := composer.Up(ctx, a.project); err != nil {
+	if err := a.project.Validate(); err != nil {
+		return fmt.Errorf("failed to validate project: %w", err)
+	}
+
+	if err := a.project.Up(ctx); err != nil {
 		return fmt.Errorf("failed to up services: %w", err)
 	}
 

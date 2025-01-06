@@ -18,6 +18,7 @@ import (
 func New(ctx context.Context, projectPath, name string) (*Project, error) {
 	o, err := cli.NewProjectOptions(
 		[]string{},
+		cli.WithoutEnvironmentResolution, // the app performs Validate() later
 		cli.WithWorkingDirectory(projectPath),
 		cli.WithDefaultConfigPath,
 		cli.WithName(name),
@@ -60,6 +61,17 @@ func New(ctx context.Context, projectPath, name string) (*Project, error) {
 	}
 
 	return p, nil
+}
+
+func (p *Project) Validate() error {
+	project, err := p.WithServicesEnvironmentResolved(false)
+	if err != nil {
+		return fmt.Errorf("failed to resolve services environment: %w", err)
+	}
+
+	p.Project = project
+
+	return nil
 }
 
 func (p *Project) setupGracePeriod() error {
@@ -122,85 +134,87 @@ func (p *Project) volumesWithSubpaths() error {
 }
 
 func (p *Project) initVolumes() error {
-	if _, ok := p.Extensions["x-devbox-init-subpath"]; ok {
-		// collect subpaths from volumes and services that use them
-		subpaths := map[string]map[string]struct{}{}
-		services := map[string]struct{}{}
+	if _, ok := p.Extensions["x-devbox-init-subpath"]; !ok {
+		return nil
+	}
 
-		for _, s := range p.Services {
-			for _, v := range s.Volumes {
-				if v.Type == types.VolumeTypeVolume && v.Source != "" && v.Volume != nil && v.Volume.Subpath != "" {
-					if _, ok := subpaths[v.Source]; !ok {
-						subpaths[v.Source] = map[string]struct{}{}
-					}
+	// collect subpaths from volumes and services that use them
+	subpaths := map[string]map[string]struct{}{}
+	services := map[string]struct{}{}
 
-					subpaths[v.Source][v.Volume.Subpath] = struct{}{}
-					services[s.Name] = struct{}{}
+	for _, s := range p.Services {
+		for _, v := range s.Volumes {
+			if v.Type == types.VolumeTypeVolume && v.Source != "" && v.Volume != nil && v.Volume.Subpath != "" {
+				if _, ok := subpaths[v.Source]; !ok {
+					subpaths[v.Source] = map[string]struct{}{}
 				}
+
+				subpaths[v.Source][v.Volume.Subpath] = struct{}{}
+				services[s.Name] = struct{}{}
 			}
 		}
+	}
 
-		// create volumes-init service
-		volumes := []types.ServiceVolumeConfig{}
-		for source := range subpaths {
-			volumes = append(volumes, types.ServiceVolumeConfig{
-				Type:   types.VolumeTypeVolume,
-				Source: source,
-				Target: fmt.Sprintf("/volume/%s", source),
+	// create volumes-init service
+	volumes := []types.ServiceVolumeConfig{}
+	for source := range subpaths {
+		volumes = append(volumes, types.ServiceVolumeConfig{
+			Type:   types.VolumeTypeVolume,
+			Source: source,
+			Target: fmt.Sprintf("/volume/%s", source),
+		})
+	}
+
+	// create post-start commands
+	postStart := []types.ServiceHook{}
+	for source, paths := range subpaths {
+		for p := range paths {
+			postStart = append(postStart, types.ServiceHook{
+				// TODO: validate names
+				Command: []string{"sh", "-c", fmt.Sprintf("mkdir -p /volume/%s/%s || true", source, p)},
 			})
 		}
+	}
 
-		// create post-start commands
-		postStart := []types.ServiceHook{}
-		for source, paths := range subpaths {
-			for p := range paths {
-				postStart = append(postStart, types.ServiceHook{
-					// TODO: validate names
-					Command: []string{"sh", "-c", fmt.Sprintf("mkdir -p /volume/%s/%s || true", source, p)},
-				})
-			}
+	postStart = append(postStart, types.ServiceHook{
+		Command: []string{"touch", "/tmp/ok"},
+	})
+
+	// create volumes-init service
+	initService := types.ServiceConfig{
+		Name:      "volumes-init",
+		Image:     "docker.io/library/busybox:latest",
+		Volumes:   volumes,
+		Command:   []string{"sh", "-c", "while [ ! -f /tmp/ok ]; do sleep 0.1; done; exit 0"},
+		PostStart: postStart,
+	}
+
+	p.Services["volumes-init"] = initService
+
+	// add volumes-init service to all services that use volumes as a dependency
+	for name, s := range p.Services {
+		if _, ok := services[name]; !ok {
+			continue
 		}
 
-		postStart = append(postStart, types.ServiceHook{
-			Command: []string{"touch", "/tmp/ok"},
-		})
-
-		// create volumes-init service
-		initService := types.ServiceConfig{
-			Name:      "volumes-init",
-			Image:     "docker.io/library/busybox:latest",
-			Volumes:   volumes,
-			Command:   []string{"sh", "-c", "while [ ! -f /tmp/ok ]; do sleep 0.1; done; exit 0"},
-			PostStart: postStart,
+		if name == "volumes-init" {
+			continue
 		}
 
-		p.Services["volumes-init"] = initService
-
-		// add volumes-init service to all services that use volumes as a dependency
-		for name, s := range p.Services {
-			if _, ok := services[name]; !ok {
-				continue
-			}
-
-			if name == "volumes-init" {
-				continue
-			}
-
-			for _, v := range s.Volumes {
-				if v.Type == types.VolumeTypeVolume {
-					if s.DependsOn == nil {
-						s.DependsOn = map[string]types.ServiceDependency{}
-					}
-
-					s.DependsOn["volumes-init"] = types.ServiceDependency{
-						Condition: types.ServiceConditionCompletedSuccessfully,
-					}
-					break
+		for _, v := range s.Volumes {
+			if v.Type == types.VolumeTypeVolume {
+				if s.DependsOn == nil {
+					s.DependsOn = map[string]types.ServiceDependency{}
 				}
-			}
 
-			p.Services[name] = s
+				s.DependsOn["volumes-init"] = types.ServiceDependency{
+					Condition: types.ServiceConditionCompletedSuccessfully,
+				}
+				break
+			}
 		}
+
+		p.Services[name] = s
 	}
 
 	return nil

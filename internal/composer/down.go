@@ -7,7 +7,7 @@ import (
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func Down(ctx context.Context, project *Project) error {
+func (p *Project) Down(ctx context.Context, deleteVolumes bool) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -18,12 +18,13 @@ func Down(ctx context.Context, project *Project) error {
 
 	// we are not overriding timeout allowing users to define it with stop_grace_period by user
 	opts := api.DownOptions{
-		Project:       project.Project,
+		Project:       p.Project,
 		RemoveOrphans: true,
+		Volumes:       deleteVolumes,
 	}
 
 	fmt.Println("Down services...")
-	if err = composer.Down(ctx, project.Name, opts); err != nil {
+	if err = composer.Down(ctx, p.Name, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
 

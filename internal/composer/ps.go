@@ -15,18 +15,18 @@ type serviceInfo struct {
 	Health string
 }
 
-func ListServices(ctx context.Context, project *Project) ([]serviceInfo, error) {
+func (p *Project) ListServices(ctx context.Context) ([]serviceInfo, error) {
 	composer, err := getClient()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	opts := api.PsOptions{
-		Project: project.Project,
+		Project: p.Project,
 		All:     true,
 	}
 
-	containers, err := composer.Ps(ctx, project.Name, opts)
+	containers, err := composer.Ps(ctx, p.Name, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get services: %w", err)
 	}
@@ -69,25 +69,25 @@ func ListServices(ctx context.Context, project *Project) ([]serviceInfo, error) 
 	return results, nil
 }
 
-func IsRunning(ctx context.Context, project *Project) (bool, error) {
+func (p *Project) IsRunning(ctx context.Context) (bool, error) {
 	composer, err := getClient()
 	if err != nil {
 		return false, fmt.Errorf("failed to get client: %w", err)
 	}
 
 	opts := api.PsOptions{
-		Project: project.Project,
+		Project: p.Project,
 	}
 
-	containers, err := composer.Ps(ctx, project.Name, opts)
+	containers, err := composer.Ps(ctx, p.Name, opts)
 	if err != nil {
 		return false, fmt.Errorf("failed to get services: %w", err)
 	}
 
 	hasAny := false
 	for _, container := range containers {
-		hasAny = container.Labels[api.ProjectLabel] == project.Name &&
-			container.Labels[api.WorkingDirLabel] == project.WorkingDir
+		hasAny = container.Labels[api.ProjectLabel] == p.Name &&
+			container.Labels[api.WorkingDirLabel] == p.WorkingDir
 		if hasAny {
 			break
 		}

@@ -37,7 +37,7 @@ func (a *app) Mount(sourceName, path string) error {
 	fullPathToSources := filepath.Join(a.projectPath, sourcesDir, sourceName)
 	affectedServices := a.servicesAffectedByMounts(fullPathToSources)
 
-	if err := a.LoadProject(); err != nil {
+	if err := a.LoadProject(a.project.Name); err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 

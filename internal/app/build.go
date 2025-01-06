@@ -3,8 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-
-	"github.com/pilat/devbox/internal/composer"
 )
 
 func (a *app) Build() error {
@@ -29,7 +27,11 @@ func (a *app) Build() error {
 		services = append(services, service.Name)
 	}
 
-	err := composer.Build(ctx, a.project, services)
+	if err := a.project.Validate(); err != nil {
+		return fmt.Errorf("failed to validate project: %w", err)
+	}
+
+	err := a.project.Build(ctx, services)
 	if err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
