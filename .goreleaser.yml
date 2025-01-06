@@ -2,10 +2,10 @@ version: 2
 
 before:
   hooks:
-    - go mod vendor
-    - rm -f ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_darwin.go
-    - sed -i.bak '/build.*darwin/d' ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_naive.go
-    - rm -f ./vendor/github.com/docker/compose/v2/pkg/watch/watcher_naive.go.bak
+    - ./scripts/patch.sh
+    - ./scripts/completions.sh
+
+report_sizes: true
 
 builds:
   - env:
@@ -25,6 +25,26 @@ archives:
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
+    builds_info:
+      group: root
+      owner: root
+      mtime: "{{ .CommitDate }}"
+    files:
+      - src: README.md
+        info:
+          group: root
+          owner: root
+          mtime: "{{ .CommitDate }}"
+      - src: LICENSE
+        info:
+          group: root
+          owner: root
+          mtime: "{{ .CommitDate }}"
+      - src: completions/*
+        info:
+          group: root
+          owner: root
+          mtime: "{{ .CommitDate }}"
 
 checksum:
   name_template: "checksums.txt"
@@ -46,3 +66,12 @@ brews:
       owner: pilat
       name: homebrew-devbox
       token: "{{ .Env.CICD_HOMEBREW_GITHUB_TOKEN }}"
+
+    license: MIT
+    dependencies:
+      - name: git
+
+    extra_install: |
+      bash_completion.install "completions/devbox.bash" => "devbox"
+      zsh_completion.install "completions/devbox.zsh" => "_devbox"
+      fish_completion.install "completions/devbox.fish"
