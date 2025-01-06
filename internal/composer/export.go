@@ -14,12 +14,10 @@ var IgnoreDependencies = types.IgnoreDependencies
 
 type Project struct {
 	*types.Project
-	Sources                SourceConfigs
-	DefaultStopGracePeriod *Duration //`yaml:"x-devbox-default-stop-grace-period,omitempty" json:"x-devbox-default-stop-grace-period,omitempty"`
 
-	// x-devbox-default-stop-grace-period: 5s
+	Sources SourceConfigs
 
-	// StopGracePeriod *Duration                        `yaml:"stop_grace_period,omitempty" json:"stop_grace_period,omitempty"`
+	envFiles []string
 }
 
 func (p *Project) WithSelectedServices(names []string, options ...types.DependencyOption) (*Project, error) {
