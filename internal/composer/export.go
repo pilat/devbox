@@ -15,7 +15,8 @@ var IgnoreDependencies = types.IgnoreDependencies
 type Project struct {
 	*types.Project
 
-	Sources SourceConfigs
+	Sources   SourceConfigs
+	Scenarios ScenarioConfigs
 
 	envFiles []string
 }

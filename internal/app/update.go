@@ -22,6 +22,7 @@ func (a *app) UpdateProject() error {
 		return fmt.Errorf("failed to get project path")
 	}
 
+	fmt.Println("Updating project...")
 	git := git.New(a.projectPath)
 
 	err := git.Pull(context.TODO()) // TODO: consider using git.Sync() to reset it every time
@@ -37,6 +38,8 @@ func (a *app) UpdateProject() error {
 	if err := a.LoadProject(a.project.Name); err != nil {
 		return err
 	}
+
+	fmt.Println("")
 
 	return nil
 }

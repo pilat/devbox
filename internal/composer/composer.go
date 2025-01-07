@@ -25,8 +25,9 @@ func New(ctx context.Context, projectPath, name string) (*Project, error) {
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
+		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
 		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
-		cli.WithExtension("x-devbox-volumes", AlternativeVolumes{}),
+		cli.WithExtension("x-devbox-volumes", AlternativeVolumes{}), // TODO: consider removing as breaking backward compatibility
 		cli.WithExtension("x-devbox-init-subpath", false),
 	)
 	if err != nil {
@@ -45,6 +46,10 @@ func New(ctx context.Context, projectPath, name string) (*Project, error) {
 
 	if s, ok := project.Extensions["x-devbox-sources"]; ok {
 		p.Sources = s.(SourceConfigs)
+	}
+
+	if s, ok := project.Extensions["x-devbox-scenarios"]; ok {
+		p.Scenarios = s.(ScenarioConfigs)
 	}
 
 	allFuncs := []func() error{
