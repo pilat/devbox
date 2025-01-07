@@ -68,9 +68,10 @@ func (a *app) autodetect() (string, string, error) {
 
 	normalizeRemoteURL := func(s string) string { // TODO: improve it to handle cases with auth
 		s = strings.ToLower(s)
-		s = strings.ReplaceAll(s, "https://", "")
-		s = strings.ReplaceAll(s, "git@", "")
+		s = strings.TrimPrefix(s, "https://")
+		s = strings.TrimPrefix(s, "git@")
 		s = strings.ReplaceAll(s, ":", "/")
+		s = strings.TrimSuffix(s, ".git")
 		return s
 	}
 	remoteURL = normalizeRemoteURL(remoteURL)
