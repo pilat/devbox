@@ -49,10 +49,7 @@ func Autodetect() (string, string, error) {
 		return "", "", fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	projectNames, err := ListProjects("")
-	if err != nil {
-		return "", "", fmt.Errorf("failed to get projects: %w", err)
-	}
+	projectNames := ListProjects("")
 
 	projects := make([]*project.Project, 0)
 	for _, projectName := range projectNames {
@@ -193,14 +190,14 @@ func Destroy(ctx context.Context, project *project.Project) error {
 	return nil
 }
 
-func ListProjects(filter string) ([]string, error) {
+func ListProjects(filter string) []string {
 	filter = strings.ToLower(filter)
 
 	results := make([]string, 0)
 
 	folders, err := os.ReadDir(app.AppDir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read .devbox directory: %w", err)
+		return []string{}
 	}
 
 	for _, folder := range folders {
@@ -216,7 +213,7 @@ func ListProjects(filter string) ([]string, error) {
 		results = append(results, folder.Name())
 	}
 
-	return results, nil
+	return results
 }
 
 func isProjectExists(path string) bool {

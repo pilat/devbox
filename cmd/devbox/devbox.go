@@ -21,12 +21,7 @@ func main() {
 	root.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
 
 	_ = root.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		results, err := manager.ListProjects(toComplete)
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
-
-		return results, cobra.ShellCompDirectiveNoFileComp
+		return manager.ListProjects(toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 
 	if err := root.Execute(); err != nil {

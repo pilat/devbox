@@ -34,10 +34,8 @@ func init() {
 func runList(ctx context.Context, filter string) error {
 	fmt.Println("")
 	fmt.Println(" Projects:")
-	projects, err := manager.ListProjects(filter)
-	if err != nil {
-		return fmt.Errorf("failed to list projects: %w", err)
-	}
+
+	projects := manager.ListProjects(filter)
 
 	t := table.New("Name", "Message", "Author", "Date")
 	for _, projectName := range projects {

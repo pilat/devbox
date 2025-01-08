@@ -16,6 +16,7 @@ func init() {
 		Use:   "unmount",
 		Short: "Unmount source code",
 		Long:  "That command will unmount source code from the project",
+		Args:  cobra.MinimumNArgs(0),
 		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
 			affectedServices, err := runUnmount(ctx, p, sourceName)
 			if err != nil {
@@ -34,7 +35,30 @@ func init() {
 		}),
 	}
 
+	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if sourceName == "" {
+			if _, s, err := manager.Autodetect(); err == nil {
+				sourceName = s
+			}
+		}
+
+		if sourceName == "" && !cmd.Flags().Changed("source") {
+			return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
+
+	_ = cmd.RegisterFlagCompletionFunc("source", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		p, err := getProject(context.Background())
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		return p.GetLocalMounts(toComplete), cobra.ShellCompDirectiveNoFileComp
+	})
 
 	root.AddCommand(cmd)
 }
