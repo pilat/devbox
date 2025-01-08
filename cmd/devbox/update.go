@@ -38,6 +38,10 @@ func init() {
 		}),
 	}
 
+	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	})
+
 	root.AddCommand(cmd)
 }
 
