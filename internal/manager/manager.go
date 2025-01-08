@@ -1,34 +1,67 @@
-package app
+package manager
 
 import (
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
+	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/project"
 )
 
-func (a *app) autodetect() (string, string, error) {
+func Init(name, url string, branch string) error {
+	if !validateName(name) {
+		return fmt.Errorf("invalid project name: %s", name)
+	}
+
+	projectFolder := filepath.Join(app.AppDir, name)
+
+	if isProjectExists(projectFolder) {
+		return fmt.Errorf("project already exists")
+	}
+
+	git := git.New(projectFolder)
+	err := git.Clone(context.TODO(), url, branch)
+	if err != nil {
+		return fmt.Errorf("failed to clone git repo: %w", err)
+	}
+
+	patterns := []string{
+		fmt.Sprintf("/%s/", app.SourcesDir),
+		fmt.Sprintf("/%s", app.StateFile),
+	}
+
+	err = git.SetLocalExclude(patterns)
+	if err != nil {
+		return fmt.Errorf("failed to set local exclude: %w", err)
+	}
+
+	return nil
+}
+
+func Autodetect() (string, string, error) {
 	curDir, err := os.Getwd()
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	projects, err := a.getProjects()
+	projectNames, err := ListProjects("")
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get projects: %w", err)
 	}
 
-	apps := make([]*app, 0)
-	for _, projectName := range projects {
-		app, err := a.getAppByName(projectName)
+	projects := make([]*project.Project, 0)
+	for _, projectName := range projectNames {
+		project, err := project.New(context.Background(), projectName)
 		if err != nil {
 			continue
 		}
 
-		apps = append(apps, app)
+		projects = append(projects, project)
 	}
 
 	ambiguous := false
@@ -38,15 +71,15 @@ func (a *app) autodetect() (string, string, error) {
 		foundProject := ""
 		foundSource := ""
 
-		for _, app := range apps {
-			for k, v := range app.state.Mounts {
+		for _, project := range projects {
+			for k, v := range project.LocalMounts {
 				if v == curDir {
 					if foundProject != "" {
 						ambiguous = true
 						return "", "" // ambiguous project
 					}
 
-					foundProject = app.project.Name
+					foundProject = project.Name
 					foundSource = k
 				}
 			}
@@ -92,9 +125,9 @@ func (a *app) autodetect() (string, string, error) {
 		foundProject := ""
 		foundSource := ""
 
-		for _, app := range apps {
-			for name, source := range app.project.Sources {
-				sourcePath := filepath.Join(app.projectPath, sourcesDir, name)
+		for _, project := range projects {
+			for name, source := range project.Sources {
+				sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, name)
 				g := git.New(sourcePath)
 				remoteURLCurrent, err := g.GetRemote(context.TODO())
 				if err != nil {
@@ -112,7 +145,7 @@ func (a *app) autodetect() (string, string, error) {
 						return "", "" // ambiguous project
 					}
 
-					foundProject = app.project.Name
+					foundProject = project.Name
 					foundSource = name
 					continue
 				}
@@ -125,7 +158,7 @@ func (a *app) autodetect() (string, string, error) {
 							return "", "" // ambiguous project
 						}
 
-						foundProject = app.project.Name
+						foundProject = project.Name
 						foundSource = name
 						break
 					}
@@ -147,16 +180,50 @@ func (a *app) autodetect() (string, string, error) {
 	return "", "", fmt.Errorf("project not found")
 }
 
-func (a *app) getAppByName(projectName string) (*app, error) {
-	if projectName == "" {
-		return nil, fmt.Errorf("project name should be set")
+func Destroy(ctx context.Context, project *project.Project) error {
+	if !isProjectExists(project.WorkingDir) {
+		return fmt.Errorf("project %s does not exist", project.Name)
 	}
 
-	a2 := a.Clone()
-	err := a2.LoadProject(projectName)
+	err := os.RemoveAll(project.WorkingDir)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("failed to remove project: %w", err)
 	}
 
-	return a2, nil
+	return nil
+}
+
+func ListProjects(filter string) ([]string, error) {
+	filter = strings.ToLower(filter)
+
+	results := make([]string, 0)
+
+	folders, err := os.ReadDir(app.AppDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read .devbox directory: %w", err)
+	}
+
+	for _, folder := range folders {
+		if !folder.IsDir() {
+			continue
+		}
+
+		name := folder.Name()
+		if !strings.HasPrefix(name, filter) {
+			continue
+		}
+
+		results = append(results, folder.Name())
+	}
+
+	return results, nil
+}
+
+func isProjectExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func validateName(name string) bool {
+	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
 }

@@ -1,42 +1,86 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/pilat/devbox/internal/app"
+	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/project"
+	"github.com/pilat/devbox/internal/table"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	var name string
-
 	cmd := &cobra.Command{
 		Use:   "info",
 		Short: "Info devbox projects",
 		Long:  "That command returns an info about a particular devbox project",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := app.New()
-			if err != nil {
-				return err
-			}
-
-			if err := app.LoadProject(name); err != nil {
-				return fmt.Errorf("failed to load project: %w", err)
-			}
-
-			if err := app.UpdateProject(); err != nil {
+		Args:  cobra.MinimumNArgs(0),
+		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
+			if err := runProjectUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
 
-			if err := app.Info(); err != nil {
+			if err := runInfo(ctx, p); err != nil {
 				return fmt.Errorf("failed to get project info: %w", err)
 			}
 
 			return nil
-		},
+		}),
 	}
 
-	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
+	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	})
 
 	root.AddCommand(cmd)
+}
+
+func runInfo(ctx context.Context, p *project.Project) error {
+	hasMounts := false
+	sourcesTable := table.New("Name", "Message", "Author", "Date")
+	sourcesTable.SortBy([]table.SortBy{
+		{Name: "Message", Mode: table.Asc},
+		{Name: "Name", Mode: table.Asc},
+	})
+
+	mountsTable := table.New("Name", "Local path")
+	for name, source := range p.Sources {
+		repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
+
+		ggg := git.New(repoDir)
+		info, err := ggg.GetInfo(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to get git info for %s: %w", name, err)
+		}
+
+		name := name
+		nameToDisplay := name
+		additionalInfo := strings.Join(source.SparseCheckout, ", ")
+		if additionalInfo != "" {
+			nameToDisplay = fmt.Sprintf("%s (%s)", nameToDisplay, additionalInfo)
+		}
+
+		sourcesTable.AppendRow(nameToDisplay, info.Message, info.Author, info.Date)
+
+		if localPath, ok := p.LocalMounts[name]; ok {
+			hasMounts = true
+			mountsTable.AppendRow(name, localPath)
+		}
+	}
+
+	fmt.Println("")
+	fmt.Println(" Sources:")
+	sourcesTable.Render()
+
+	if hasMounts {
+		fmt.Println("")
+		fmt.Println(" Mounts:")
+		mountsTable.Render()
+	}
+
+	return nil
 }

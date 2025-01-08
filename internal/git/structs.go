@@ -1,6 +1,6 @@
 package git
 
-type commitInfo struct {
+type CommitInfo struct {
 	Hash    string
 	Author  string
 	Date    string

@@ -1,16 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/pilat/devbox/internal/app"
+	"github.com/pilat/devbox/internal/manager"
+	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
 
 func init() {
-	var name string
 	var branch string
 
 	cmd := &cobra.Command{
@@ -23,42 +24,46 @@ func init() {
 				os.Exit(0)
 			}
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			app, err := app.New()
-			if err != nil {
-				return err
-			}
-
+		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			gitURL := args[0]
 
 			if name == "" {
 				name = guessName(gitURL)
 			}
 
-			if err := app.Init(name, gitURL, branch); err != nil {
-				return fmt.Errorf("failed to init project: %w", err)
-			}
-
-			if err := app.LoadProject(name); err != nil {
-				return fmt.Errorf("failed to load project: %w", err)
-			}
-
-			if err := app.UpdateSources(); err != nil {
-				return fmt.Errorf("failed to update sources: %w", err)
-			}
-
-			if err := app.Info(); err != nil {
-				return fmt.Errorf("failed to get info: %w", err)
+			if err := runInit(ctx, name, gitURL, branch); err != nil {
+				return fmt.Errorf("failed to list projects: %w", err)
 			}
 
 			return nil
-		},
+		}),
 	}
 
-	cmd.PersistentFlags().StringVarP(&name, "name", "n", "", "Project name")
 	cmd.PersistentFlags().StringVarP(&branch, "branch", "b", "", "Branch to clone")
 
 	root.AddCommand(cmd)
+}
+
+func runInit(ctx context.Context, name, gitURL, branch string) error {
+	fmt.Println("[*] Initializing project...")
+	if err := manager.Init(name, gitURL, branch); err != nil {
+		return fmt.Errorf("failed to init project: %w", err)
+	}
+
+	project, err := project.New(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	if err := runSourcesUpdate(ctx, project); err != nil {
+		return fmt.Errorf("failed to update sources: %w", err)
+	}
+
+	if err := runInfo(ctx, project); err != nil {
+		return fmt.Errorf("failed to get project info: %w", err)
+	}
+
+	return nil
 }
 
 func guessName(source string) string {

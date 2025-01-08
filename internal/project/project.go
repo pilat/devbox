@@ -1,7 +1,8 @@
-package composer
+package project
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -10,18 +11,36 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/format"
+	"github.com/pilat/devbox/internal/app"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
 )
 
-func New(ctx context.Context, projectPath, name string) (*Project, error) {
+// Replacement of composer service with our state keeper. Another extended service (with client inside) will be used.
+type Project struct {
+	*types.Project
+
+	Sources     SourceConfigs
+	Scenarios   ScenarioConfigs
+	LocalMounts map[string]string
+
+	envFiles []string
+}
+
+func New(ctx context.Context, projectName string) (*Project, error) {
+	projectFolder := filepath.Join(app.AppDir, projectName)
+
+	if _, err := os.Stat(projectFolder); os.IsNotExist(err) {
+		return nil, fmt.Errorf("project '%s' not found", projectName)
+	}
+
 	o, err := cli.NewProjectOptions(
 		[]string{},
 		cli.WithoutEnvironmentResolution, // the app performs Validate() later
-		cli.WithWorkingDirectory(projectPath),
+		cli.WithWorkingDirectory(projectFolder),
 		cli.WithDefaultConfigPath,
-		cli.WithName(name),
+		cli.WithName(projectName),
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
@@ -31,41 +50,80 @@ func New(ctx context.Context, projectPath, name string) (*Project, error) {
 		cli.WithExtension("x-devbox-init-subpath", false),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create compose project options: %w", err)
+		return nil, fmt.Errorf("failed to load compose project options: %w", err)
 	}
 
 	project, err := cli.ProjectFromOptions(ctx, o)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create compose project: %w", err)
+		return nil, fmt.Errorf("failed to load compose project: %w", err)
 	}
 
 	p := &Project{
-		Project:  project,
-		envFiles: o.EnvFiles,
+		Project:     project,
+		envFiles:    o.EnvFiles,
+		LocalMounts: make(map[string]string),
 	}
 
-	if s, ok := project.Extensions["x-devbox-sources"]; ok {
-		p.Sources = s.(SourceConfigs)
-	}
-
-	if s, ok := project.Extensions["x-devbox-scenarios"]; ok {
-		p.Scenarios = s.(ScenarioConfigs)
-	}
-
-	allFuncs := []func() error{
-		p.setupGracePeriod,
-		p.volumesWithSubpaths,
-		p.initVolumes,
-		p.applyLabels,
+	allFuncs := []func(p *Project) error{
+		loadState,
+		applySources,
+		applyScenarios,
+		setupGracePeriod,
+		volumesWithSubpaths,
+		initVolumes,
+		applyLabels,
+		remountSourceVolumes,
 	}
 
 	for _, f := range allFuncs {
-		if err := f(); err != nil {
-			return nil, fmt.Errorf("failed to process project: %w", err)
+		if err := f(p); err != nil {
+			return nil, fmt.Errorf("failed to open project '%s': %w", projectName, err)
 		}
 	}
 
 	return p, nil
+}
+
+func (p *Project) WithSelectedServices(names []string, options ...types.DependencyOption) (*Project, error) {
+	p2, err := p.Project.WithSelectedServices(names, options...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select services: %w", err)
+	}
+
+	return &Project{
+		Project: p2,
+		Sources: p.Sources,
+	}, nil
+}
+
+func (p *Project) SaveState() error {
+	state := &stateFileStruct{
+		Mounts: p.LocalMounts,
+	}
+
+	json, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	filename := filepath.Join(p.WorkingDir, app.StateFile)
+	err = os.WriteFile(filename, json, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write state file: %w", err)
+	}
+
+	return nil
+}
+
+func (p *Project) Reload(ctx context.Context) error {
+	p2, err := New(ctx, p.Name)
+	if err != nil {
+		return fmt.Errorf("failed to reload project: %w", err)
+	}
+
+	*p = *p2
+
+	return nil
 }
 
 func (p *Project) Validate() error {
@@ -79,11 +137,57 @@ func (p *Project) Validate() error {
 	return nil
 }
 
-func (p *Project) setupGracePeriod() error {
+func loadState(p *Project) error {
+	filename := filepath.Join(p.WorkingDir, app.StateFile)
+
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("failed to get state file: %w", err)
+	}
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("failed to read state file: %w", err)
+	}
+
+	state := &stateFileStruct{}
+	err = json.Unmarshal(content, state)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal state: %w", err)
+	}
+
+	if state.Mounts == nil {
+		return nil
+	}
+
+	p.LocalMounts = state.Mounts
+
+	return nil
+}
+
+func applySources(p *Project) error {
+	if s, ok := p.Extensions["x-devbox-sources"]; ok {
+		p.Sources = s.(SourceConfigs) // nolint: forcetypeassert
+	}
+
+	return nil
+}
+
+func applyScenarios(p *Project) error {
+	if s, ok := p.Extensions["x-devbox-scenarios"]; ok {
+		p.Scenarios = s.(ScenarioConfigs) // nolint: forcetypeassert
+	}
+
+	return nil
+}
+
+func setupGracePeriod(p *Project) error {
 	var defaultStopGracePeriod *Duration
 
 	if s, ok := p.Extensions["x-devbox-default-stop-grace-period"]; ok {
-		v := s.(Duration)
+		v := s.(Duration) // nolint: forcetypeassert
 		defaultStopGracePeriod = &v
 	}
 
@@ -103,12 +207,13 @@ func (p *Project) setupGracePeriod() error {
 	return nil
 }
 
-func (p *Project) volumesWithSubpaths() error {
+func volumesWithSubpaths(p *Project) error {
 	// extended inline volumes with subpath support
 	for name, s := range p.Services {
 		if e, ok := s.Extensions["x-devbox-volumes"]; ok {
 			s.Volumes = []types.ServiceVolumeConfig{}
-			for _, volume := range e.(AlternativeVolumes) {
+			altVolumes := e.(AlternativeVolumes) // nolint: forcetypeassert
+			for _, volume := range altVolumes {
 				v, err := format.ParseVolume(volume)
 				if err != nil {
 					return fmt.Errorf("failed to parse volume: %w", err)
@@ -138,7 +243,7 @@ func (p *Project) volumesWithSubpaths() error {
 	return nil
 }
 
-func (p *Project) initVolumes() error {
+func initVolumes(p *Project) error {
 	if _, ok := p.Extensions["x-devbox-init-subpath"]; !ok {
 		return nil
 	}
@@ -225,7 +330,7 @@ func (p *Project) initVolumes() error {
 	return nil
 }
 
-func (p *Project) applyLabels() error {
+func applyLabels(p *Project) error {
 	for name, s := range p.Services {
 		s.CustomLabels = map[string]string{
 			api.ProjectLabel:     p.Name,
@@ -241,6 +346,34 @@ func (p *Project) applyLabels() error {
 		}
 
 		p.Services[name] = s
+	}
+
+	return nil
+}
+
+func remountSourceVolumes(p *Project) error {
+	fullPathToSources := filepath.Join(p.WorkingDir, app.SourcesDir)
+
+	fullPathToSources += "/"
+
+	for _, service := range p.Services {
+		for i := range service.Volumes {
+			volume := &service.Volumes[i]
+
+			if volume.Type != "bind" || !strings.HasPrefix(volume.Source, fullPathToSources) {
+				continue
+			}
+
+			sourceName := strings.TrimPrefix(volume.Source, fullPathToSources)
+			sourceName = strings.Split(sourceName, "/")[0]
+
+			altMountPath, ok := p.LocalMounts[sourceName]
+			if !ok {
+				continue
+			}
+
+			volume.Source = altMountPath
+		}
 	}
 
 	return nil

@@ -1,7 +1,8 @@
-package composer
+package project
 
 type AlternativeVolumes []string
 
+type SourceConfigs map[string]SourceConfig
 type SourceConfig struct {
 	URL            string   `yaml:"url"`
 	Branch         string   `yaml:"branch"`
@@ -9,8 +10,7 @@ type SourceConfig struct {
 	Environment    []string `yaml:"environment"`
 }
 
-type SourceConfigs map[string]SourceConfig
-
+type ScenarioConfigs map[string]ScenarioConfig
 type ScenarioConfig struct {
 	Service     string   `yaml:"service"`
 	Description string   `yaml:"description"`
@@ -21,5 +21,3 @@ type ScenarioConfig struct {
 	WorkingDir  string   `yaml:"working_dir"`
 	User        string   `yaml:"user"`
 }
-
-type ScenarioConfigs map[string]ScenarioConfig

@@ -1,20 +1,16 @@
-package app
+package service
 
 import (
 	"context"
 	"fmt"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
-func (a *app) Build() error {
-	if a.projectPath == "" {
-		return ErrProjectIsNotSet
-	}
-
-	ctx := context.TODO()
-
+func (a *Service) Build(ctx context.Context, p *project.Project) error {
 	uniqueImages := map[string]bool{}
 	services := []string{}
-	for _, service := range a.project.Services {
+	for _, service := range p.Services {
 		if service.Build == nil || service.Image == "" {
 			continue
 		}
@@ -27,12 +23,15 @@ func (a *app) Build() error {
 		services = append(services, service.Name)
 	}
 
-	if err := a.project.Validate(); err != nil {
-		return fmt.Errorf("failed to validate project: %w", err)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	opts := project.BuildOptions{
+		Services: services,
+		Quiet:    true,
 	}
 
-	err := a.project.Build(ctx, services)
-	if err != nil {
+	if err := a.service.Build(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to build services: %w", err)
 	}
 

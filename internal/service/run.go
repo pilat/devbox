@@ -1,18 +1,13 @@
-package composer
+package service
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/docker/compose/v2/pkg/api"
+	"github.com/pilat/devbox/internal/project"
 )
 
-func (p *Project) Run(ctx context.Context, command string, args []string) error {
-	composer, err := getClient()
-	if err != nil {
-		return fmt.Errorf("failed to get client: %w", err)
-	}
-
+func (a *Service) Run(ctx context.Context, p *project.Project, command string, args []string) error {
 	scenario, ok := p.Scenarios[command]
 	if !ok {
 		return fmt.Errorf("scenario %q not found", command)
@@ -32,7 +27,7 @@ func (p *Project) Run(ctx context.Context, command string, args []string) error 
 		tty = *scenario.Tty
 	}
 
-	opts := api.RunOptions{
+	opts := project.RunOptions{
 		Service:     scenario.Service,
 		Interactive: interactive,
 		Tty:         tty,
@@ -42,7 +37,7 @@ func (p *Project) Run(ctx context.Context, command string, args []string) error 
 		User:        scenario.User,
 	}
 
-	exitCode, err := composer.Exec(ctx, p.Name, opts)
+	exitCode, err := a.service.Exec(ctx, p.Name, opts)
 	if err != nil {
 		return fmt.Errorf("failed to exec: %w", err)
 	}
