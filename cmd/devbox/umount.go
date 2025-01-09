@@ -13,12 +13,12 @@ func init() {
 	var sourceName string
 
 	cmd := &cobra.Command{
-		Use:   "unmount",
-		Short: "Unmount source code",
-		Long:  "That command will unmount source code from the project",
+		Use:   "umount",
+		Short: "Umount source code",
+		Long:  "That command will umount source code from the project",
 		Args:  cobra.MinimumNArgs(0),
 		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
-			affectedServices, err := runUnmount(ctx, p, sourceName)
+			affectedServices, err := runUmount(ctx, p, sourceName)
 			if err != nil {
 				return fmt.Errorf("failed to mount source code: %w", err)
 			}
@@ -63,7 +63,7 @@ func init() {
 	root.AddCommand(cmd)
 }
 
-func runUnmount(ctx context.Context, p *project.Project, sourceName string) ([]string, error) {
+func runUmount(ctx context.Context, p *project.Project, sourceName string) ([]string, error) {
 	if sourceName == "" {
 		_, s, err := manager.Autodetect()
 		if err != nil {
@@ -73,7 +73,7 @@ func runUnmount(ctx context.Context, p *project.Project, sourceName string) ([]s
 		}
 	}
 
-	affectedServices, err := p.Unmount(ctx, sourceName)
+	affectedServices, err := p.Umount(ctx, sourceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount source code: %w", err)
 	}

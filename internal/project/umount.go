@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-func (p *Project) Unmount(ctx context.Context, sourceName string) ([]string, error) {
+func (p *Project) Umount(ctx context.Context, sourceName string) ([]string, error) {
 	curPath, ok := p.LocalMounts[sourceName]
 	if !ok {
 		return nil, fmt.Errorf("source %s is not mounted", sourceName)
