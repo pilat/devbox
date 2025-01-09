@@ -23,6 +23,8 @@ type DownOptions = api.DownOptions
 
 type PsOptions = api.PsOptions
 
+type LogOptions = api.LogOptions
+
 var ServiceLabel = api.ServiceLabel
 var ProjectLabel = api.ProjectLabel
 var WorkingDirLabel = api.WorkingDirLabel

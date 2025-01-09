@@ -24,8 +24,6 @@ func init() {
 				return fmt.Errorf("failed to update sources: %w", err)
 			}
 
-			fmt.Printf("services: %v\n", args)
-
 			if err := runRestart(ctx, p, args, true); err != nil {
 				return fmt.Errorf("failed to restart services: %w", err)
 			}
@@ -45,7 +43,7 @@ func init() {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
 
-		results, err := cli.GetRunningServices(ctx, p, toComplete)
+		results, err := cli.GetRunningServices(ctx, p, false, toComplete)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}

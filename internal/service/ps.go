@@ -85,9 +85,10 @@ func (a *Service) Ps(ctx context.Context, p *project.Project) error {
 	return nil
 }
 
-func (a *Service) GetRunningServices(ctx context.Context, p *project.Project, filter string) ([]string, error) {
+func (a *Service) GetRunningServices(ctx context.Context, p *project.Project, all bool, filter string) ([]string, error) {
 	opts := project.PsOptions{
 		Project: p.Project,
+		All:     all,
 	}
 
 	containers, err := a.service.Ps(ctx, p.Name, opts)
