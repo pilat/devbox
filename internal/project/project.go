@@ -46,7 +46,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
 		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
-		cli.WithExtension("x-devbox-volumes", AlternativeVolumes{}), // TODO: consider removing as breaking backward compatibility
+		cli.WithExtension("x-devbox-volumes", AlternativeVolumes{}), // Experimental feature
 		cli.WithExtension("x-devbox-init-subpath", false),
 	)
 	if err != nil {
@@ -275,28 +275,22 @@ func initVolumes(p *Project) error {
 		})
 	}
 
-	// create post-start commands
-	postStart := []types.ServiceHook{}
+	// construct the initialization command in one execution
+	initCommands := []string{}
 	for source, paths := range subpaths {
-		for p := range paths {
-			postStart = append(postStart, types.ServiceHook{
-				// TODO: validate names
-				Command: []string{"sh", "-c", fmt.Sprintf("mkdir -p /volume/%s/%s || true", source, p)},
-			})
+		for path := range paths {
+			// TODO: escape paths
+			cmd := fmt.Sprintf("mkdir -p /volume/%s/%s && printf 'Created %s/%s\n'", source, path, source, path)
+			initCommands = append(initCommands, cmd)
 		}
 	}
 
-	postStart = append(postStart, types.ServiceHook{
-		Command: []string{"touch", "/tmp/ok"},
-	})
-
 	// create volumes-init service
 	initService := types.ServiceConfig{
-		Name:      "volumes-init",
-		Image:     "docker.io/library/busybox:latest",
-		Volumes:   volumes,
-		Command:   []string{"sh", "-c", "while [ ! -f /tmp/ok ]; do sleep 0.1; done; exit 0"},
-		PostStart: postStart,
+		Name:    "volumes-init",
+		Image:   "docker.io/library/busybox:latest",
+		Volumes: volumes,
+		Command: []string{"sh", "-c", strings.Join(initCommands, " && ")},
 	}
 
 	p.Services["volumes-init"] = initService
