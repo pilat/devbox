@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
-	"github.com/compose-spec/compose-go/v2/format"
 	"github.com/pilat/devbox/internal/app"
 
 	"github.com/compose-spec/compose-go/v2/types"
@@ -46,8 +44,6 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
 		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
-		cli.WithExtension("x-devbox-volumes", AlternativeVolumes{}), // Experimental feature
-		cli.WithExtension("x-devbox-init-subpath", false),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load compose project options: %w", err)
@@ -69,8 +65,6 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		applySources,
 		applyScenarios,
 		setupGracePeriod,
-		volumesWithSubpaths,
-		initVolumes,
 		applyLabels,
 		remountSourceVolumes,
 	}
@@ -199,123 +193,6 @@ func setupGracePeriod(p *Project) error {
 
 		if defaultStopGracePeriod != nil {
 			s.StopGracePeriod = defaultStopGracePeriod
-		}
-
-		p.Services[name] = s
-	}
-
-	return nil
-}
-
-func volumesWithSubpaths(p *Project) error {
-	// extended inline volumes with subpath support
-	for name, s := range p.Services {
-		if e, ok := s.Extensions["x-devbox-volumes"]; ok {
-			s.Volumes = []types.ServiceVolumeConfig{}
-			altVolumes := e.(AlternativeVolumes) // nolint: forcetypeassert
-			for _, volume := range altVolumes {
-				v, err := format.ParseVolume(volume)
-				if err != nil {
-					return fmt.Errorf("failed to parse volume: %w", err)
-				}
-
-				if v.Target != "" {
-					v.Target = path.Clean(v.Target)
-				}
-
-				if v.Type == types.VolumeTypeVolume && v.Source != "" { // non anonymous volumes
-					elements := strings.Split(v.Source, "/")
-					v.Source = elements[0]
-					if len(elements) > 1 {
-						v.Volume.Subpath = strings.Join(elements[1:], "/")
-					}
-				}
-
-				v.Source = absVolumeMount(p.WorkingDir, v.Source)
-
-				s.Volumes = append(s.Volumes, v)
-			}
-
-			p.Services[name] = s
-		}
-	}
-
-	return nil
-}
-
-func initVolumes(p *Project) error {
-	if _, ok := p.Extensions["x-devbox-init-subpath"]; !ok {
-		return nil
-	}
-
-	// collect subpaths from volumes and services that use them
-	subpaths := map[string]map[string]struct{}{}
-	services := map[string]struct{}{}
-
-	for _, s := range p.Services {
-		for _, v := range s.Volumes {
-			if v.Type == types.VolumeTypeVolume && v.Source != "" && v.Volume != nil && v.Volume.Subpath != "" {
-				if _, ok := subpaths[v.Source]; !ok {
-					subpaths[v.Source] = map[string]struct{}{}
-				}
-
-				subpaths[v.Source][v.Volume.Subpath] = struct{}{}
-				services[s.Name] = struct{}{}
-			}
-		}
-	}
-
-	// create volumes-init service
-	volumes := []types.ServiceVolumeConfig{}
-	for source := range subpaths {
-		volumes = append(volumes, types.ServiceVolumeConfig{
-			Type:   types.VolumeTypeVolume,
-			Source: source,
-			Target: fmt.Sprintf("/volume/%s", source),
-		})
-	}
-
-	// construct the initialization command in one execution
-	initCommands := []string{}
-	for source, paths := range subpaths {
-		for path := range paths {
-			// TODO: escape paths
-			cmd := fmt.Sprintf("mkdir -p /volume/%s/%s && printf 'Created %s/%s\n'", source, path, source, path)
-			initCommands = append(initCommands, cmd)
-		}
-	}
-
-	// create volumes-init service
-	initService := types.ServiceConfig{
-		Name:    "volumes-init",
-		Image:   "docker.io/library/busybox:latest",
-		Volumes: volumes,
-		Command: []string{"sh", "-c", strings.Join(initCommands, " && ")},
-	}
-
-	p.Services["volumes-init"] = initService
-
-	// add volumes-init service to all services that use volumes as a dependency
-	for name, s := range p.Services {
-		if _, ok := services[name]; !ok {
-			continue
-		}
-
-		if name == "volumes-init" {
-			continue
-		}
-
-		for _, v := range s.Volumes {
-			if v.Type == types.VolumeTypeVolume {
-				if s.DependsOn == nil {
-					s.DependsOn = map[string]types.ServiceDependency{}
-				}
-
-				s.DependsOn["volumes-init"] = types.ServiceDependency{
-					Condition: types.ServiceConditionCompletedSuccessfully,
-				}
-				break
-			}
 		}
 
 		p.Services[name] = s

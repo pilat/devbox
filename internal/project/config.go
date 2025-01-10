@@ -1,7 +1,5 @@
 package project
 
-type AlternativeVolumes []string
-
 type SourceConfigs map[string]SourceConfig
 type SourceConfig struct {
 	URL            string   `yaml:"url"`
