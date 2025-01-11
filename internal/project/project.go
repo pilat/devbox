@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/pilat/devbox/internal/app"
+	"golang.org/x/net/idna"
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v2/pkg/api"
@@ -19,11 +21,15 @@ import (
 type Project struct {
 	*types.Project
 
-	Sources     SourceConfigs
-	Scenarios   ScenarioConfigs
-	LocalMounts map[string]string
+	Sources      SourceConfigs
+	Scenarios    ScenarioConfigs
+	HostEntities []string // IP hostname1 [hostname2] [hostname3] ...
 
-	envFiles []string
+	LocalMounts map[string]string
+	HasHosts    bool
+
+	hostConfigs HostConfigs
+	envFiles    []string
 }
 
 func New(ctx context.Context, projectName string) (*Project, error) {
@@ -43,6 +49,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		cli.WithResolvedPaths(true),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
+		cli.WithExtension("x-devbox-hosts", HostConfigs{}),
 		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
 	)
 	if err != nil {
@@ -64,6 +71,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		loadState,
 		applySources,
 		applyScenarios,
+		applyHosts,
 		setupGracePeriod,
 		applyLabels,
 		remountSourceVolumes,
@@ -92,7 +100,8 @@ func (p *Project) WithSelectedServices(names []string, options ...types.Dependen
 
 func (p *Project) SaveState() error {
 	state := &stateFileStruct{
-		Mounts: p.LocalMounts,
+		Mounts:   p.LocalMounts,
+		HasHosts: p.HasHosts,
 	}
 
 	json, err := json.Marshal(state)
@@ -172,6 +181,40 @@ func applySources(p *Project) error {
 func applyScenarios(p *Project) error {
 	if s, ok := p.Extensions["x-devbox-scenarios"]; ok {
 		p.Scenarios = s.(ScenarioConfigs) // nolint: forcetypeassert
+	}
+
+	return nil
+}
+
+func applyHosts(p *Project) error {
+	if s, ok := p.Extensions["x-devbox-hosts"]; ok {
+		hostConfigs := s.(HostConfigs) // nolint: forcetypeassert
+
+		ipToHosts := make(map[string][]string)
+		for _, item := range hostConfigs {
+			ip := net.ParseIP(item.IP)
+			item.IP = ip.String()
+
+			for _, hostname := range item.Hosts {
+				hostname, err := idna.Lookup.ToASCII(hostname)
+				if err != nil {
+					return fmt.Errorf("failed to convert hostname to ASCII: %w", err)
+				}
+
+				if _, ok := ipToHosts[item.IP]; !ok {
+					ipToHosts[item.IP] = []string{}
+				}
+
+				ipToHosts[item.IP] = append(ipToHosts[item.IP], hostname)
+			}
+		}
+
+		entities := []string{}
+		for ip, hosts := range ipToHosts {
+			entities = append(entities, fmt.Sprintf("%s %s", ip, strings.Join(hosts, " ")))
+		}
+
+		p.HostEntities = entities
 	}
 
 	return nil

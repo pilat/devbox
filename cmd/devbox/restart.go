@@ -49,6 +49,8 @@ func init() {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
 
+			_ = runHostsUpdate(p, true, false)
+
 			if err := runSourcesUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update sources: %w", err)
 			}

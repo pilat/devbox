@@ -33,6 +33,8 @@ func init() {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
 
+			_ = runHostsUpdate(p, true, false)
+
 			if err := runInfo(ctx, p); err != nil {
 				return fmt.Errorf("failed to get project info: %w", err)
 			}

@@ -19,3 +19,9 @@ type ScenarioConfig struct {
 	WorkingDir  string   `yaml:"working_dir"`
 	User        string   `yaml:"user"`
 }
+
+type HostConfigs []HostConfig
+type HostConfig struct {
+	IP    string   `yaml:"ip"`
+	Hosts []string `yaml:"hosts"`
+}

@@ -27,6 +27,8 @@ func init() {
 				return fmt.Errorf("failed to stop project: %w", err)
 			}
 
+			_ = runHostsUpdate(p, true, true)
+
 			if err := runDestroy(ctx, p); err != nil {
 				return fmt.Errorf("failed to destroy project: %w", err)
 			}
