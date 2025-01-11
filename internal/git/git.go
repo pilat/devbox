@@ -58,16 +58,8 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 	}
 
 	if isExist {
-		_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
-
-		out, err := s.exec(ctx, "git", "-C", s.targetPath, "reset", "--hard")
-		if err != nil {
-			return fmt.Errorf("failed to reset: %s %w", out, err)
-		}
-
-		out, err = s.exec(ctx, "git", "-C", s.targetPath, "clean", "-fd")
-		if err != nil {
-			return fmt.Errorf("failed to clean: %s %w", out, err)
+		if err := s.reset(ctx); err != nil {
+			return fmt.Errorf("failed to reset repo: %w", err)
 		}
 	} else {
 		_ = os.MkdirAll(s.targetPath, os.ModePerm)
@@ -103,6 +95,10 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 }
 
 func (s *svc) Pull(ctx context.Context) error {
+	if err := s.reset(ctx); err != nil {
+		return fmt.Errorf("failed to reset repo: %w", err)
+	}
+
 	out, err := s.exec(ctx, "git", "-C", s.targetPath, "pull", "--rebase")
 	if err != nil {
 		return fmt.Errorf("failed to pull: %s %w", out, err)
@@ -146,6 +142,22 @@ func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
 	}
 
 	return strings.TrimSpace(out), nil
+}
+
+func (s *svc) reset(ctx context.Context) error {
+	_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
+
+	out, err := s.exec(ctx, "git", "-C", s.targetPath, "reset", "--hard")
+	if err != nil {
+		return fmt.Errorf("failed to reset: %s %w", out, err)
+	}
+
+	out, err = s.exec(ctx, "git", "-C", s.targetPath, "clean", "-fd")
+	if err != nil {
+		return fmt.Errorf("failed to clean: %s %w", out, err)
+	}
+
+	return nil
 }
 
 func (s *svc) exec(ctx context.Context, name string, args ...string) (string, error) {

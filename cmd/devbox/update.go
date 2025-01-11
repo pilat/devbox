@@ -11,6 +11,7 @@ import (
 	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,15 @@ func init() {
 		Short: "Update devbox project sources",
 		Long:  "That command will update sources in devbox project",
 		Args:  cobra.MinimumNArgs(0),
-		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
+		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}),
+		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return err
+			}
+
 			if err := runProjectUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
@@ -38,24 +47,20 @@ func init() {
 		}),
 	}
 
-	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	})
-
 	root.AddCommand(cmd)
 }
 
 func runProjectUpdate(ctx context.Context, p *project.Project) error {
-	ggg := git.New(p.WorkingDir)
+	g := git.New(p.WorkingDir)
 
 	fmt.Println("[*] Updating project...")
 
-	err := ggg.Pull(ctx) // TODO: consider using git.Sync() to reset it every time
+	err := g.Pull(ctx) // TODO: consider using git.Sync() to reset it every time
 	if err != nil {
 		return fmt.Errorf("failed to pull git repo: %w", err)
 	}
 
-	_, err = ggg.GetInfo(ctx)
+	_, err = g.GetInfo(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get git info: %w", err)
 	}

@@ -18,7 +18,38 @@ func init() {
 		Short: "Mount source code",
 		Long:  "That command will mount source code to the project",
 		Args:  cobra.MinimumNArgs(0),
-		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
+		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			if sourceName == "" {
+				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
+					sourceName = detectedName
+				}
+			}
+
+			if sourceName == "" && !cmd.Flags().Changed("source") {
+				return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			// We are not suggesting --path since we assume that user wants to mount the current directory
+
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}),
+		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return err
+			}
+
+			if sourceName == "" {
+				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
+					sourceName = detectedName
+				}
+			}
+
 			affectedServices, err := runMount(ctx, p, sourceName, targetPath)
 			if err != nil {
 				return fmt.Errorf("failed to mount source code: %w", err)
@@ -36,27 +67,11 @@ func init() {
 		}),
 	}
 
-	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if sourceName == "" {
-			if _, s, err := manager.Autodetect(); err == nil {
-				sourceName = s
-			}
-		}
-
-		if sourceName == "" && !cmd.Flags().Changed("source") {
-			return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
-		}
-
-		// We are not suggesting --path since we assume that user wants to mount the current directory
-
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	})
-
 	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
 	cmd.PersistentFlags().StringVarP(&targetPath, "path", "p", "", "Path to mount")
 
 	_ = cmd.RegisterFlagCompletionFunc("source", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := getProject(context.Background())
+		p, err := manager.AutodetectProject(projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -68,14 +83,14 @@ func init() {
 }
 
 func runMount(ctx context.Context, p *project.Project, sourceName, targetPath string) ([]string, error) {
-	if sourceName == "" {
-		_, s, err := manager.Autodetect()
-		if err != nil {
-			return nil, fmt.Errorf("failed to autodetect source name: %w", err)
-		} else {
-			sourceName = s
-		}
-	}
+	// if sourceName == "" {
+	// 	_, s, err := manager.Autodetect()
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("failed to autodetect source name: %w", err)
+	// 	} else {
+	// 		sourceName = s
+	// 	}
+	// }
 
 	affectedServices, err := p.Mount(ctx, sourceName, targetPath)
 	if err != nil {

@@ -14,7 +14,15 @@ func init() {
 		Use:   "destroy",
 		Short: "Destroy devbox project",
 		Long:  "That command will destroy devbox project",
-		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
+		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}),
+		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return err
+			}
+
 			if err := runDown(ctx, p, true); err != nil {
 				return fmt.Errorf("failed to stop project: %w", err)
 			}
@@ -26,10 +34,6 @@ func init() {
 			return nil
 		}),
 	}
-
-	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	})
 
 	root.AddCommand(cmd)
 }

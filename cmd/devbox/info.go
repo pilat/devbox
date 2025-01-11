@@ -8,6 +8,7 @@ import (
 
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/pilat/devbox/internal/table"
 	"github.com/spf13/cobra"
@@ -19,7 +20,15 @@ func init() {
 		Short: "Info devbox projects",
 		Long:  "That command returns an info about a particular devbox project",
 		Args:  cobra.MinimumNArgs(0),
-		RunE: runWrapperWithProject(func(ctx context.Context, p *project.Project, cmd *cobra.Command, args []string) error {
+		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}),
+		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return err
+			}
+
 			if err := runProjectUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
@@ -31,10 +40,6 @@ func init() {
 			return nil
 		}),
 	}
-
-	cmd.ValidArgsFunction = validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, p *project.Project, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	})
 
 	root.AddCommand(cmd)
 }
@@ -51,8 +56,8 @@ func runInfo(ctx context.Context, p *project.Project) error {
 	for name, source := range p.Sources {
 		repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
 
-		ggg := git.New(repoDir)
-		info, err := ggg.GetInfo(ctx)
+		g := git.New(repoDir)
+		info, err := g.GetInfo(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get git info for %s: %w", name, err)
 		}

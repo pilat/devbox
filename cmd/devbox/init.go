@@ -12,6 +12,7 @@ import (
 )
 
 func init() {
+	var projectName string
 	var branch string
 
 	cmd := &cobra.Command{
@@ -27,11 +28,11 @@ func init() {
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			gitURL := args[0]
 
-			if name == "" {
-				name = guessName(gitURL)
+			if projectName == "" {
+				projectName = guessName(gitURL)
 			}
 
-			if err := runInit(ctx, name, gitURL, branch); err != nil {
+			if err := runInit(ctx, projectName, gitURL, branch); err != nil {
 				return fmt.Errorf("failed to list projects: %w", err)
 			}
 
@@ -39,7 +40,8 @@ func init() {
 		}),
 	}
 
-	cmd.PersistentFlags().StringVarP(&branch, "branch", "b", "", "Branch to clone")
+	cmd.Flags().StringVarP(&projectName, "name", "n", "", "Project name")
+	cmd.Flags().StringVarP(&branch, "branch", "b", "", "Branch to clone")
 
 	root.AddCommand(cmd)
 }
