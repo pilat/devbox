@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli/streams"
 	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/pilat/devbox/internal/app"
@@ -26,13 +27,19 @@ func init() {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
+			// We are attempting to update the project by its name before trying autodetection,
+			// as autodetection may fail if the project manifest is damaged.
+			updated := runEmergencyProjectUpdate(ctx, projectName)
+
 			p, err := manager.AutodetectProject(projectName)
 			if err != nil {
 				return err
 			}
 
-			if err := runProjectUpdate(ctx, p); err != nil {
-				return fmt.Errorf("failed to update project: %w", err)
+			if !updated {
+				if err := runProjectUpdate(ctx, p); err != nil {
+					return fmt.Errorf("failed to update project: %w", err)
+				}
 			}
 
 			if err := runSourcesUpdate(ctx, p); err != nil {
@@ -48,6 +55,24 @@ func init() {
 	}
 
 	root.AddCommand(cmd)
+}
+
+func runEmergencyProjectUpdate(ctx context.Context, projectName string) bool {
+	if projectName == "" {
+		return false
+	}
+
+	workingDir := filepath.Join(app.AppDir, projectName)
+	if _, err := os.Stat(workingDir); err != nil {
+		return false
+	}
+
+	fakeProject := &project.Project{
+		Project: &types.Project{},
+	}
+	fakeProject.WorkingDir = workingDir
+
+	return runProjectUpdate(ctx, fakeProject) == nil
 }
 
 func runProjectUpdate(ctx context.Context, p *project.Project) error {
