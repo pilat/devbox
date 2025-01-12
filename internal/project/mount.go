@@ -10,14 +10,7 @@ import (
 )
 
 func (p *Project) Mount(ctx context.Context, sourceName, path string) ([]string, error) {
-	if strings.HasPrefix(path, "~") {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get home directory: %w", err)
-		}
-
-		path = filepath.Join(homeDir, path[1:])
-	}
+	path = p.absPath(path)
 
 	if !filepath.IsAbs(path) {
 		curDir, err := os.Getwd()

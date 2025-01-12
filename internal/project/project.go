@@ -24,6 +24,7 @@ type Project struct {
 	Sources      SourceConfigs
 	Scenarios    ScenarioConfigs
 	HostEntities []string // IP hostname1 [hostname2] [hostname3] ...
+	CertConfig   CertConfig
 
 	LocalMounts map[string]string
 	HasHosts    bool
@@ -50,6 +51,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
 		cli.WithExtension("x-devbox-hosts", HostConfigs{}),
+		cli.WithExtension("x-devbox-cert", CertConfig{}),
 		cli.WithExtension("x-devbox-default-stop-grace-period", Duration(0)),
 	)
 	if err != nil {
@@ -72,6 +74,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		applySources,
 		applyScenarios,
 		applyHosts,
+		applyCert,
 		setupGracePeriod,
 		applyLabels,
 		remountSourceVolumes,
@@ -138,6 +141,21 @@ func (p *Project) Validate() error {
 	p.Project = project
 
 	return nil
+}
+
+func (p *Project) absPath(source string) string {
+	prefix := ""
+
+	switch {
+	case strings.HasPrefix(source, "~"):
+		if home, err := os.UserHomeDir(); err != nil {
+			prefix = home
+		}
+	case strings.HasPrefix(source, "."):
+		prefix = p.WorkingDir
+	}
+
+	return filepath.Join(prefix, source)
 }
 
 func loadState(p *Project) error {
@@ -220,6 +238,21 @@ func applyHosts(p *Project) error {
 	return nil
 }
 
+func applyCert(p *Project) error {
+	if s, ok := p.Extensions["x-devbox-cert"]; ok {
+		p.CertConfig = s.(CertConfig) // nolint: forcetypeassert
+
+		if p.CertConfig.CertFile != "" {
+			p.CertConfig.CertFile = p.absPath(p.CertConfig.CertFile)
+		}
+		if p.CertConfig.KeyFile != "" {
+			p.CertConfig.KeyFile = p.absPath(p.CertConfig.KeyFile)
+		}
+	}
+
+	return nil
+}
+
 func setupGracePeriod(p *Project) error {
 	var defaultStopGracePeriod *Duration
 
@@ -291,20 +324,4 @@ func remountSourceVolumes(p *Project) error {
 	}
 
 	return nil
-}
-
-// Convert a relative path to an absolute path
-func absVolumeMount(workingDir, source string) string {
-	prefix := ""
-
-	switch {
-	case strings.HasPrefix(source, "~"):
-		if home, err := os.UserHomeDir(); err != nil {
-			prefix = home
-		}
-	case strings.HasPrefix(source, "."):
-		prefix = workingDir
-	}
-
-	return filepath.Join(prefix, source)
 }

@@ -25,3 +25,9 @@ type HostConfig struct {
 	IP    string   `yaml:"ip"`
 	Hosts []string `yaml:"hosts"`
 }
+
+type CertConfig struct {
+	Domains  []string `yaml:"domains"`
+	KeyFile  string   `yaml:"keyFile"`
+	CertFile string   `yaml:"certFile"`
+}

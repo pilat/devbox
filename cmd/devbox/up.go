@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/pilat/devbox/internal/app"
+	"github.com/pilat/devbox/internal/cert"
 	"github.com/pilat/devbox/internal/hosts"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
@@ -30,7 +32,13 @@ func init() {
 				return fmt.Errorf("failed to update project: %w", err)
 			}
 
-			_ = runHostsUpdate(p, true, false)
+			if err := runHostsUpdate(p, true, false); err != nil {
+				return fmt.Errorf("failed to update hosts file: %w", err)
+			}
+
+			if err := runCertUpdate(p, true); err != nil {
+				return fmt.Errorf("failed to update certificates: %w", err)
+			}
 
 			if err := runSourcesUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update sources: %w", err)
@@ -85,6 +93,34 @@ func runUp(ctx context.Context, p *project.Project) error {
 	return nil
 }
 
+func runCertUpdate(p *project.Project, firstTime bool) error {
+	if len(p.CertConfig.Domains) == 0 {
+		return nil
+	}
+
+	fmt.Println("[*] Setup CA...")
+
+	err := cert.SetupCA(app.AppDir)
+	if err != nil && firstTime {
+		args := []string{"--", "devbox", "install-ca", "--name", p.Name}
+
+		cmd := exec.Command("sudo", args...)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to install CA: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to install CA: %w", err)
+	}
+
+	fmt.Println("[*] Generate certificates...")
+	err = cert.GeneratePair(app.AppDir, p.CertConfig.CertFile, p.CertConfig.KeyFile, p.CertConfig.Domains)
+	if err != nil {
+		return fmt.Errorf("failed to generate certificates: %w", err)
+	}
+
+	return nil
+}
+
 func runHostsUpdate(p *project.Project, firstTime, cleanup bool) error {
 	if len(p.HostEntities) == 0 && !p.HasHosts {
 		return nil // project has no hosts and there were no hosts before
@@ -99,19 +135,19 @@ func runHostsUpdate(p *project.Project, firstTime, cleanup bool) error {
 
 	err := hosts.Save(p.Name, entities)
 	if err != nil && firstTime {
-		args := []string{"--", "devbox", "update-hosts"}
+		args := []string{"--", "devbox", "update-hosts", "--name", p.Name}
 		if cleanup {
 			args = append(args, "--cleanup")
 		}
 
 		cmd := exec.Command("sudo", args...)
-		return cmd.Run()
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to save hosts file: %w", err)
+		}
 	} else if err != nil {
 		return fmt.Errorf("failed to save hosts file: %w", err)
-	} else {
-		p.HasHosts = len(entities) == 0
-		return p.SaveState()
 	}
 
-	return nil
+	p.HasHosts = len(entities) == 0
+	return p.SaveState()
 }
