@@ -25,7 +25,7 @@ func init() {
 			}
 
 			if sourceName == "" {
-				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
+				if detectedName, _ := manager.AutodetectSource(p, false); detectedName != "" {
 					sourceName = detectedName
 				}
 			}
@@ -45,9 +45,12 @@ func init() {
 			}
 
 			if sourceName == "" {
-				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
-					sourceName = detectedName
+				detectedName, err := manager.AutodetectSource(p, false)
+				if err != nil {
+					return fmt.Errorf("failed to autodetect source: %w", err)
 				}
+
+				sourceName = detectedName
 			}
 
 			affectedServices, err := runMount(ctx, p, sourceName, targetPath)
@@ -83,15 +86,6 @@ func init() {
 }
 
 func runMount(ctx context.Context, p *project.Project, sourceName, targetPath string) ([]string, error) {
-	// if sourceName == "" {
-	// 	_, s, err := manager.Autodetect()
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("failed to autodetect source name: %w", err)
-	// 	} else {
-	// 		sourceName = s
-	// 	}
-	// }
-
 	affectedServices, err := p.Mount(ctx, sourceName, targetPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount source code: %w", err)

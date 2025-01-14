@@ -24,7 +24,7 @@ func init() {
 			}
 
 			if sourceName == "" {
-				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
+				if detectedName, _ := manager.AutodetectSource(p, true); detectedName != "" {
 					sourceName = detectedName
 				}
 			}
@@ -42,9 +42,12 @@ func init() {
 			}
 
 			if sourceName == "" {
-				if detectedName, _ := manager.AutodetectSource(p); detectedName != "" {
-					sourceName = detectedName
+				detectedName, err := manager.AutodetectSource(p, true)
+				if err != nil {
+					return fmt.Errorf("failed to autodetect source: %w", err)
 				}
+
+				sourceName = detectedName
 			}
 
 			affectedServices, err := runUmount(ctx, p, sourceName)

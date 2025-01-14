@@ -14,7 +14,7 @@ import (
 )
 
 // AutodetectSource detects the source name of the current directory in a context of a project.
-func AutodetectSource(project *project.Project) (string, error) {
+func AutodetectSource(project *project.Project, onlyMounted bool) (string, error) {
 	curDir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current directory: %w", err)
@@ -34,14 +34,6 @@ func AutodetectSource(project *project.Project) (string, error) {
 		return "", nil
 	}
 
-	normalizeRemoteURL := func(s string) string { // TODO: improve it to handle cases with auth
-		s = strings.ToLower(s)
-		s = strings.TrimPrefix(s, "https://")
-		s = strings.TrimPrefix(s, "git@")
-		s = strings.ReplaceAll(s, ":", "/")
-		s = strings.TrimSuffix(s, ".git")
-		return s
-	}
 	remoteURL = normalizeRemoteURL(remoteURL)
 
 	toplevelDir, err := g.GetTopLevel(context.TODO())
@@ -53,10 +45,16 @@ func AutodetectSource(project *project.Project) (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	relativePath = strings.ToLower(relativePath)
+	relativePath = strings.ToLower(relativePath) // a/b or "."
 
-	// What if the current directory is a source of some project
+	foundSource := ""
+	ambiguous := false
+
 	for name, source := range project.Sources {
+		if onlyMounted && project.LocalMounts[name] == "" {
+			continue
+		}
+
 		sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, name)
 		g := git.New(sourcePath)
 		remoteURLCurrent, err := g.GetRemote(context.TODO())
@@ -70,15 +68,31 @@ func AutodetectSource(project *project.Project) (string, error) {
 		}
 
 		if len(source.SparseCheckout) == 0 {
-			return name, nil
-		}
+			if foundSource != "" && foundSource != name {
+				ambiguous = true
+			}
 
-		// if sparse checkout is set, we need to check if the path is in the sparse checkout list
-		for _, v := range source.SparseCheckout {
-			if strings.ToLower(v) == relativePath {
-				return name, nil
+			foundSource = name
+		} else {
+			// if sparse checkout is set, we need to check if the path is in the sparse checkout list
+			for _, v := range source.SparseCheckout {
+				if strings.ToLower(v) == relativePath {
+					if foundSource != "" && foundSource != name {
+						ambiguous = true
+					}
+
+					foundSource = name
+				}
 			}
 		}
+	}
+
+	if foundSource != "" && !ambiguous {
+		return foundSource, nil
+	}
+
+	if ambiguous {
+		return "", fmt.Errorf("ambiguous source, please specify source name")
 	}
 
 	return "", fmt.Errorf("source not found")
@@ -121,7 +135,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 	for _, project := range projects {
 		for _, v := range project.LocalMounts {
 			if v == curDir {
-				if foundProject != nil {
+				if foundProject != nil && foundProject != project {
 					ambiguous = true
 				}
 
@@ -143,14 +157,6 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return nil, fmt.Errorf("failed to get remote url: %w", err)
 	}
 
-	normalizeRemoteURL := func(s string) string { // TODO: improve it to handle cases with auth
-		s = strings.ToLower(s)
-		s = strings.TrimPrefix(s, "https://")
-		s = strings.TrimPrefix(s, "git@")
-		s = strings.ReplaceAll(s, ":", "/")
-		s = strings.TrimSuffix(s, ".git")
-		return s
-	}
 	remoteURL = normalizeRemoteURL(remoteURL)
 
 	toplevelDir, err := g.GetTopLevel(context.TODO())
@@ -162,7 +168,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get relative path: %w", err)
 	}
-	relativePath = strings.ToLower(relativePath)
+	relativePath = strings.ToLower(relativePath) // a/b or "."
 
 	// if that path is source of one project
 	for _, project := range projects {
@@ -180,7 +186,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 			}
 
 			if len(source.SparseCheckout) == 0 {
-				if foundProject != nil {
+				if foundProject != nil && foundProject != project {
 					ambiguous = true
 				}
 
@@ -191,7 +197,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 			// if sparse checkout is set, we need to check if the path is in the sparse checkout list
 			for _, v := range source.SparseCheckout {
 				if strings.ToLower(v) == relativePath {
-					if foundProject != nil {
+					if foundProject != nil && foundProject != project {
 						ambiguous = true
 					}
 
@@ -289,4 +295,13 @@ func isProjectExists(path string) bool {
 
 func validateName(name string) bool {
 	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
+}
+
+func normalizeRemoteURL(s string) string { // TODO: improve it to handle cases with auth
+	s = strings.ToLower(s)
+	s = strings.TrimPrefix(s, "https://")
+	s = strings.TrimPrefix(s, "git@")
+	s = strings.ReplaceAll(s, ":", "/")
+	s = strings.TrimSuffix(s, ".git")
+	return s
 }
