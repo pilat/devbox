@@ -8,10 +8,12 @@ import (
 
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/compose"
+	"github.com/docker/docker/client"
 )
 
 type Service struct {
-	service api.Service
+	service   api.Service
+	apiClient client.APIClient
 }
 
 func New() (*Service, error) {
@@ -26,6 +28,7 @@ func New() (*Service, error) {
 	}
 
 	return &Service{
-		service: compose.NewComposeService(dockerCLI),
+		service:   compose.NewComposeService(dockerCLI),
+		apiClient: dockerCLI.Client(),
 	}, nil
 }

@@ -12,33 +12,11 @@ import (
 
 func init() {
 	cmd := &cobra.Command{
-		Use:   "restart",
-		Short: "Restart services in devbox project",
-		Long:  "That command will restart services in devbox project",
-		Args:  cobra.MinimumNArgs(0),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := manager.AutodetectProject(projectName)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			// If project not detected, disallow further completions
-			if p == nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			cli, err := service.New()
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			results, err := cli.GetRunningServices(ctx, p, false, toComplete)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			return results, cobra.ShellCompDirectiveNoFileComp
-		}),
+		Use:               "restart",
+		Short:             "Restart services in devbox project",
+		Long:              "That command will restart services in devbox project",
+		Args:              cobra.MinimumNArgs(0),
+		ValidArgsFunction: validArgsWrapper(suggestRunningServices),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := manager.AutodetectProject(projectName)
 			if err != nil {
@@ -70,6 +48,30 @@ func init() {
 	}
 
 	root.AddCommand(cmd)
+}
+
+func suggestRunningServices(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	p, err := manager.AutodetectProject(projectName)
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	// If project not detected, disallow further completions
+	if p == nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	cli, err := service.New()
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	results, err := cli.GetRunningServices(ctx, p, false, toComplete)
+	if err != nil {
+		return []string{}, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	return results, cobra.ShellCompDirectiveNoFileComp
 }
 
 func runRestart(ctx context.Context, p *project.Project, services []string, noDeps bool) error {

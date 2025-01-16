@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/pilat/devbox/internal/app"
@@ -26,7 +27,7 @@ type Project struct {
 	HostEntities []string // IP hostname1 [hostname2] [hostname3] ...
 	CertConfig   CertConfig
 
-	LocalMounts map[string]string
+	LocalMounts map[string]string // some service's full mount path -> local path
 	HasHosts    bool
 
 	hostConfigs HostConfigs
@@ -77,7 +78,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		applyCert,
 		setupGracePeriod,
 		applyLabels,
-		remountSourceVolumes,
+		mountSourceVolumes,
 	}
 
 	for _, f := range allFuncs {
@@ -298,21 +299,23 @@ func applyLabels(p *Project) error {
 	return nil
 }
 
-func remountSourceVolumes(p *Project) error {
-	fullPathToSources := filepath.Join(p.WorkingDir, app.SourcesDir)
+func mountSourceVolumes(p *Project) error {
+	fullPathToSources := filepath.Join(p.WorkingDir)
 
-	fullPathToSources += "/"
+	for name, service := range p.Services {
+		envPrefix := fmt.Sprintf("DEVBOX_%s_", convertToEnvName(service.Name))
 
-	for _, service := range p.Services {
 		for i := range service.Volumes {
 			volume := &service.Volumes[i]
 
-			if volume.Type != "bind" || !strings.HasPrefix(volume.Source, fullPathToSources) {
+			if volume.Type != "bind" {
 				continue
 			}
 
-			sourceName := strings.TrimPrefix(volume.Source, fullPathToSources)
-			sourceName = strings.Split(sourceName, "/")[0]
+			sourceName := "." + strings.TrimPrefix(volume.Source, fullPathToSources)
+			if !strings.HasPrefix(sourceName, "./sources/") {
+				continue
+			}
 
 			altMountPath, ok := p.LocalMounts[sourceName]
 			if !ok {
@@ -320,8 +323,45 @@ func remountSourceVolumes(p *Project) error {
 			}
 
 			volume.Source = altMountPath
+
+			if service.Environment == nil {
+				service.Environment = types.MappingWithEquals{}
+			}
+
+			value := "mounted"
+			sourcePostfix := convertToEnvName(sourceName)
+			service.Environment[envPrefix+sourcePostfix] = &value
 		}
+
+		p.Services[name] = service
 	}
 
 	return nil
+}
+
+func convertToEnvName(name string) string {
+	var result strings.Builder
+	prevWasUnderscore := false
+
+	for _, char := range name {
+		// Check if the character is valid: letter, digit, or underscore
+		if unicode.IsLetter(char) || unicode.IsDigit(char) {
+			result.WriteRune(unicode.ToUpper(char))
+			prevWasUnderscore = false
+		} else {
+			// Replace invalid characters with underscores, avoiding consecutive underscores
+			if !prevWasUnderscore {
+				result.WriteRune('_')
+				prevWasUnderscore = true
+			}
+		}
+	}
+
+	// Ensure the name starts with a letter or underscore
+	finalName := result.String()
+	if len(finalName) > 0 && !unicode.IsLetter(rune(finalName[0])) {
+		finalName = "_" + finalName
+	}
+
+	return finalName
 }

@@ -53,14 +53,12 @@ func init() {
 }
 
 func runInfo(ctx context.Context, p *project.Project) error {
-	hasMounts := false
 	sourcesTable := table.New("Name", "Message", "Author", "Date")
 	sourcesTable.SortBy([]table.SortBy{
 		{Name: "Message", Mode: table.Asc},
 		{Name: "Name", Mode: table.Asc},
 	})
 
-	mountsTable := table.New("Name", "Local path")
 	for name, source := range p.Sources {
 		repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
 
@@ -78,18 +76,18 @@ func runInfo(ctx context.Context, p *project.Project) error {
 		}
 
 		sourcesTable.AppendRow(nameToDisplay, info.Message, info.Author, info.Date)
+	}
 
-		if localPath, ok := p.LocalMounts[name]; ok {
-			hasMounts = true
-			mountsTable.AppendRow(name, localPath)
-		}
+	mountsTable := table.New("Mount path", "Local path")
+	for name, localPath := range p.LocalMounts {
+		mountsTable.AppendRow(name, localPath)
 	}
 
 	fmt.Println("")
 	fmt.Println(" Sources:")
 	sourcesTable.Render()
 
-	if hasMounts {
+	if len(p.LocalMounts) > 0 {
 		fmt.Println("")
 		fmt.Println(" Mounts:")
 		mountsTable.Render()

@@ -13,90 +13,12 @@ import (
 	"github.com/pilat/devbox/internal/project"
 )
 
-// AutodetectSource detects the source name of the current directory in a context of a project.
-func AutodetectSource(project *project.Project, onlyMounted bool) (string, error) {
-	curDir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
+type AutodetectSourceType int
 
-	// If the current directory is mounted to some source in the project
-	for k, v := range project.LocalMounts {
-		if v == curDir {
-			return k, nil
-		}
-	}
-
-	// When the current dir is a git repo
-	g := git.New(curDir)
-	remoteURL, err := g.GetRemote(context.TODO())
-	if err != nil {
-		return "", nil
-	}
-
-	remoteURL = normalizeRemoteURL(remoteURL)
-
-	toplevelDir, err := g.GetTopLevel(context.TODO())
-	if err != nil {
-		return "", nil
-	}
-
-	relativePath, err := filepath.Rel(toplevelDir, curDir)
-	if err != nil {
-		return "", nil
-	}
-	relativePath = strings.ToLower(relativePath) // a/b or "."
-
-	foundSource := ""
-	ambiguous := false
-
-	for name, source := range project.Sources {
-		if onlyMounted && project.LocalMounts[name] == "" {
-			continue
-		}
-
-		sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, name)
-		g := git.New(sourcePath)
-		remoteURLCurrent, err := g.GetRemote(context.TODO())
-		if err != nil {
-			continue
-		}
-
-		remoteURLCurrent = normalizeRemoteURL(remoteURLCurrent)
-		if remoteURL != remoteURLCurrent {
-			continue
-		}
-
-		if len(source.SparseCheckout) == 0 {
-			if foundSource != "" && foundSource != name {
-				ambiguous = true
-			}
-
-			foundSource = name
-		} else {
-			// if sparse checkout is set, we need to check if the path is in the sparse checkout list
-			for _, v := range source.SparseCheckout {
-				if strings.ToLower(v) == relativePath {
-					if foundSource != "" && foundSource != name {
-						ambiguous = true
-					}
-
-					foundSource = name
-				}
-			}
-		}
-	}
-
-	if foundSource != "" && !ambiguous {
-		return foundSource, nil
-	}
-
-	if ambiguous {
-		return "", fmt.Errorf("ambiguous source, please specify source name")
-	}
-
-	return "", fmt.Errorf("source not found")
-}
+const (
+	AutodetectSourceForMount AutodetectSourceType = iota
+	AutodetectSourceForUmount
+)
 
 // AutodetectProject validates project name (if provided) and tries to autodetect the project by comparing
 // the current directory with the project sources and local mounts. If not successful or ambiguous, it returns an error.
@@ -217,6 +139,177 @@ func AutodetectProject(name string) (*project.Project, error) {
 	}
 
 	return foundProject, fmt.Errorf("project is unknown")
+}
+
+func AutodetectSource(project *project.Project, sourceNameSel string, purpose AutodetectSourceType) ([]string, []string, error) {
+	if sourceNameSel != "" {
+		if !strings.HasPrefix(sourceNameSel, "./sources/") {
+			return nil, nil, fmt.Errorf("source '%s' not found", sourceNameSel)
+		}
+
+		sourcePath := filepath.Join(project.WorkingDir, sourceNameSel)
+		if fstat, err := os.Stat(sourcePath); err != nil || !fstat.IsDir() {
+			return nil, nil, fmt.Errorf("source '%s' not found", sourceNameSel)
+		}
+
+		if purpose == AutodetectSourceForUmount {
+			alt, ok := project.LocalMounts[sourceNameSel]
+			if !ok {
+				return nil, nil, fmt.Errorf("source '%s' not found", sourceNameSel)
+			}
+
+			sourcePath = alt
+		}
+
+		// detect affected services
+		affectedServices := make(map[string]bool)
+		for _, service := range project.Services {
+			for _, volume := range service.Volumes {
+				if volume.Source != sourcePath {
+					continue
+				}
+
+				affectedServices[service.Name] = true
+			}
+		}
+
+		if len(affectedServices) == 0 {
+			return nil, nil, fmt.Errorf("no services found using the detected source")
+		}
+
+		return []string{sourceNameSel}, toList(affectedServices), nil
+	}
+
+	curDir, err := os.Getwd()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get current directory: %w", err)
+	}
+
+	// Get the top-level directory of the current Git repository
+	curGit := git.New(curDir)
+	toplevelDir, err := curGit.GetTopLevel(context.TODO())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get git top-level directory: %w", err)
+	}
+
+	remoteURL, err := curGit.GetRemote(context.TODO())
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get remote url: %w", err)
+	}
+	remoteURL = normalizeRemoteURL(remoteURL)
+
+	// Get the relative path between the Git top-level directory and the current directory
+	relativePath, err := filepath.Rel(toplevelDir, curDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get relative path: %w", err)
+	}
+	relativePath = strings.ToLower(relativePath) // Normalize the relative path
+
+	// Determine if the Git top-level directory matches any project source
+	sources := make(map[string]bool)
+	affectedServices := make(map[string]bool)
+
+	for sourceName := range project.Sources {
+		sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, sourceName)
+		expectedPath := filepath.Join(sourcePath, relativePath)
+
+		relSourcePath, _ := filepath.Rel(project.WorkingDir, expectedPath)
+		relSourcePath = "./" + relSourcePath
+
+		if purpose == AutodetectSourceForUmount {
+			alt, ok := project.LocalMounts[relSourcePath]
+			if !ok {
+				continue
+			}
+
+			expectedPath = alt
+		}
+
+		sourceGit := git.New(sourcePath)
+
+		sourceRemoteURL, err := sourceGit.GetRemote(context.TODO())
+		if err != nil {
+			continue
+		}
+		sourceRemoteURL = normalizeRemoteURL(sourceRemoteURL)
+
+		if remoteURL != sourceRemoteURL {
+			continue
+		}
+
+		// Check all services using this source for affected services
+		for _, service := range project.Services {
+			for _, volume := range service.Volumes {
+				if volume.Source != expectedPath {
+					continue
+				}
+
+				sources[relSourcePath] = true
+				affectedServices[service.Name] = true
+			}
+		}
+	}
+
+	if len(sources) == 0 {
+		return nil, nil, fmt.Errorf("no services found using the detected source and relative path")
+	}
+
+	return toList(sources), toList(affectedServices), nil
+}
+
+func toList(m map[string]bool) []string {
+	result := make([]string, 0, len(m))
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func GetLocalMountCandidates(project *project.Project, filter string) []string {
+	filter = strings.ToLower(filter)
+
+	results := make(map[string]bool)
+	for sourceName := range project.Sources {
+		sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, sourceName)
+		for _, service := range project.Services {
+			for _, volume := range service.Volumes {
+				if volume.Type == "bind" && strings.HasPrefix(volume.Source, sourcePath) {
+					relSourcePath, _ := filepath.Rel(project.WorkingDir, volume.Source)
+					relSourcePath = "./" + relSourcePath
+
+					if _, ok := project.LocalMounts[relSourcePath]; ok {
+						continue
+					}
+
+					results[relSourcePath] = true
+				}
+			}
+		}
+	}
+
+	r2 := []string{}
+	for k := range results {
+		if filter != "" && !strings.Contains(strings.ToLower(k), filter) {
+			continue
+		}
+
+		r2 = append(r2, k)
+	}
+
+	return r2
+}
+
+func GetLocalMounts(project *project.Project, filter string) []string {
+	filter = strings.ToLower(filter)
+
+	results := []string{}
+	for k := range project.LocalMounts {
+		if filter == "" || strings.Contains(strings.ToLower(k), filter) {
+			results = append(results, k)
+		}
+	}
+
+	return results
 }
 
 func Init(name, url string, branch string) error {
