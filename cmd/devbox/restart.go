@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/docker/compose/v2/pkg/api"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/pilat/devbox/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -78,12 +79,7 @@ func suggestRunningServices(ctx context.Context, cmd *cobra.Command, args []stri
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	cli, err := service.New()
-	if err != nil {
-		return []string{}, cobra.ShellCompDirectiveNoFileComp
-	}
-
-	results, err := cli.GetRunningServices(ctx, p, false, toComplete)
+	results, err := getRunningServices(ctx, apiService, p, false, toComplete)
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -92,12 +88,7 @@ func suggestRunningServices(ctx context.Context, cmd *cobra.Command, args []stri
 }
 
 func runRestart(ctx context.Context, p *project.Project, services []string, noDeps bool) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-
-	isRunning, err := cli.IsRunning(ctx, p)
+	isRunning, err := isRunning(ctx, apiService, p)
 	if err != nil {
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
@@ -136,4 +127,28 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 	}
 
 	return nil
+}
+
+func getRunningServices(ctx context.Context, a api.Service, p *project.Project, all bool, filter string) ([]string, error) {
+	opts := project.PsOptions{
+		Project: p.Project,
+		All:     all,
+	}
+
+	containers, err := a.Ps(ctx, p.Name, opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get services: %w", err)
+	}
+
+	results := []string{}
+	for _, container := range containers {
+		containerName := container.Labels[project.ServiceLabel]
+		if !strings.HasPrefix(strings.ToLower(containerName), strings.ToLower(filter)) {
+			continue
+		}
+
+		results = append(results, containerName)
+	}
+
+	return results, nil
 }

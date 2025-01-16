@@ -6,7 +6,6 @@ import (
 
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/pilat/devbox/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -36,13 +35,15 @@ func init() {
 }
 
 func runDown(ctx context.Context, p *project.Project, deleteVolumes bool) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
+	// we are not overriding timeout allowing users to define it with stop_grace_period by user
+	opts := project.DownOptions{
+		Project:       p.Project,
+		RemoveOrphans: true,
+		Volumes:       deleteVolumes,
 	}
 
 	fmt.Println("[*] Down services...")
-	if err := cli.Down(ctx, p, deleteVolumes); err != nil {
+	if err := apiService.Down(ctx, p.Name, opts); err != nil {
 		return fmt.Errorf("failed to stop project: %w", err)
 	}
 	fmt.Println("")

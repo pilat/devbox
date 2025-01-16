@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
+	"github.com/docker/cli/cli/streams"
+	"github.com/docker/compose/v2/cmd/formatter"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/pilat/devbox/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -22,12 +24,7 @@ func init() {
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			cli, err := service.New()
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			results, err := cli.GetRunningServices(ctx, p, true, toComplete)
+			results, err := getRunningServices(ctx, apiService, p, true, toComplete)
 			if err != nil {
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
 			}
@@ -52,12 +49,18 @@ func init() {
 }
 
 func runLogs(ctx context.Context, p *project.Project, services []string) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
+	opts := project.LogOptions{
+		Project:  p.Project,
+		Services: services,
+		Tail:     "500",
+		Follow:   true,
 	}
 
-	if err := cli.Logs(ctx, p, services); err != nil {
+	outStream := streams.NewOut(os.Stdout)
+	errStream := streams.NewOut(os.Stderr)
+
+	consumer := formatter.NewLogConsumer(ctx, outStream, errStream, true, true, false)
+	if err := apiService.Logs(ctx, p.Name, consumer, opts); err != nil {
 		return fmt.Errorf("failed to get logs: %w", err)
 	}
 

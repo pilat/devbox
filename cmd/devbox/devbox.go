@@ -2,8 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 
+	"github.com/docker/cli/cli/command"
+	"github.com/docker/cli/cli/flags"
+	"github.com/docker/compose/v2/pkg/api"
+	"github.com/docker/compose/v2/pkg/compose"
+	"github.com/docker/docker/client"
 	"github.com/pilat/devbox/internal/errors"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/spf13/cobra"
@@ -13,7 +19,21 @@ var root = &cobra.Command{}
 
 var projectName string
 
+var dockerClient client.APIClient
+var apiService api.Service
+
 func main() {
+	for _, fn := range []func() error{
+		initDocker,
+		initCobra,
+	} {
+		if err := fn(); err != nil {
+			os.Exit(1)
+		}
+	}
+}
+
+func initCobra() error {
 	root.Use = "devbox"
 	root.SetErrPrefix("Error has occurred while executing the command:\n")
 
@@ -23,9 +43,25 @@ func main() {
 		return manager.ListProjects(toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 
-	if err := root.Execute(); err != nil {
-		os.Exit(1)
+	return root.Execute()
+}
+
+func initDocker() error {
+	dockerCLI, err := command.NewDockerCli()
+	if err != nil {
+		return fmt.Errorf("failed to create docker client: %w", err)
 	}
+
+	cliOpts := flags.NewClientOptions()
+	if err = dockerCLI.Initialize(cliOpts); err != nil {
+		return fmt.Errorf("failed to initialize docker client: %w", err)
+	}
+
+	dockerClient = dockerCLI.Client()
+
+	apiService = compose.NewComposeService(dockerCLI)
+
+	return nil
 }
 
 func validArgsWrapper(f func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

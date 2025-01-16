@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/compose/v2/pkg/api"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/pilat/devbox/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ func init() {
 		Use:   "run <scenario>",
 		Short: "Run scenario defined in devbox project",
 		Long:  "You can pass additional arguments to the scenario",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ExactArgs(1),
 		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			p, err := manager.AutodetectProject(projectName)
 			if err != nil {
@@ -56,12 +56,7 @@ func init() {
 }
 
 func runRun(ctx context.Context, p *project.Project, command string, args []string) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
-	}
-
-	isRunning, err := cli.IsRunning(ctx, p)
+	isRunning, err := isRunning(ctx, apiService, p)
 	if err != nil {
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
@@ -70,9 +65,65 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 		return nil
 	}
 
-	if err := cli.Run(ctx, p, command, args); err != nil {
-		return fmt.Errorf("failed to run scenario: %w", err)
+	scenario, ok := p.Scenarios[command]
+	if !ok {
+		return fmt.Errorf("scenario %q not found", command)
+	}
+
+	commands := []string{}
+	commands = append(commands, scenario.Command...)
+	commands = append(commands, args...)
+
+	interactive := true
+	if scenario.Interactive != nil {
+		interactive = *scenario.Interactive
+	}
+
+	tty := true
+	if scenario.Tty != nil {
+		tty = *scenario.Tty
+	}
+
+	opts := project.RunOptions{
+		Service:     scenario.Service,
+		Interactive: interactive,
+		Tty:         tty,
+		Command:     commands,
+		Entrypoint:  scenario.Entrypoint,
+		WorkingDir:  scenario.WorkingDir,
+		User:        scenario.User,
+	}
+
+	exitCode, err := apiService.Exec(ctx, p.Name, opts)
+	if err != nil {
+		return fmt.Errorf("failed to exec: %w", err)
+	}
+
+	if exitCode != 0 {
+		return fmt.Errorf("non-zero exit code: %d", exitCode)
 	}
 
 	return nil
+}
+
+func isRunning(ctx context.Context, a api.Service, p *project.Project) (bool, error) {
+	opts := project.PsOptions{
+		Project: p.Project,
+	}
+
+	containers, err := a.Ps(ctx, p.Name, opts)
+	if err != nil {
+		return false, fmt.Errorf("failed to get services: %w", err)
+	}
+
+	hasAny := false
+	for _, container := range containers {
+		hasAny = container.Labels[project.ProjectLabel] == p.Name &&
+			container.Labels[project.WorkingDirLabel] == p.WorkingDir
+		if hasAny {
+			break
+		}
+	}
+
+	return hasAny, nil
 }

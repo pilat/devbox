@@ -6,13 +6,13 @@ import (
 	"os/exec"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/cert"
 	"github.com/pilat/devbox/internal/hosts"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/pilat/devbox/internal/service"
 	"github.com/spf13/cobra"
 )
 
@@ -121,30 +121,56 @@ func getAvailableProfiles(p *project.Project, name string) []string {
 }
 
 func runBuild(ctx context.Context, p *project.Project) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
+	uniqueImages := map[string]bool{}
+	services := []string{}
+	for _, service := range p.Services {
+		if service.Build == nil || service.Image == "" {
+			continue
+		}
+
+		uniqueImages[service.Image] = true
+		services = append(services, service.Name)
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	opts := project.BuildOptions{
+		Services: services,
+		Quiet:    true,
 	}
 
 	fmt.Println("[*] Build services...")
-	if err := cli.Build(ctx, p); err != nil {
+	if err := apiService.Build(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to build project: %w", err)
 	}
+
 	fmt.Println("")
 
 	return nil
 }
 
 func runUp(ctx context.Context, p *project.Project) error {
-	cli, err := service.New()
-	if err != nil {
-		return fmt.Errorf("failed to create service: %w", err)
+	timeout := 60 * time.Minute
+	opts := project.UpOptions{
+		Create: project.CreateOptions{
+			RemoveOrphans: true,
+			QuietPull:     true,
+			Timeout:       &timeout,
+			Inherit:       false,
+		},
+		Start: project.StartOptions{
+			Project:     p.Project,
+			Wait:        true,
+			WaitTimeout: timeout,
+		},
 	}
 
 	fmt.Println("[*] Up services...")
-	if err := cli.Up(ctx, p); err != nil {
+	if err := apiService.Up(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to start project: %w", err)
 	}
+
 	fmt.Println("")
 
 	return nil
