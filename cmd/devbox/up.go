@@ -58,10 +58,6 @@ func init() {
 				return fmt.Errorf("failed to update sources: %w", err)
 			}
 
-			if err := p.Validate(); err != nil {
-				return fmt.Errorf("failed to validate project: %w", err)
-			}
-
 			if err := runBuild(ctx, p); err != nil {
 				return fmt.Errorf("failed to build project: %w", err)
 			}

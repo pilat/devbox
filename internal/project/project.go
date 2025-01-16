@@ -44,7 +44,6 @@ func New(ctx context.Context, projectName string, profiles []string) (*Project, 
 
 	o, err := cli.NewProjectOptions(
 		[]string{},
-		cli.WithoutEnvironmentResolution, // the app performs Validate() later
 		cli.WithWorkingDirectory(projectFolder),
 		cli.WithDefaultConfigPath,
 		cli.WithName(projectName),
@@ -131,17 +130,6 @@ func (p *Project) Reload(ctx context.Context, profiles []string) error {
 	}
 
 	*p = *p2
-
-	return nil
-}
-
-func (p *Project) Validate() error {
-	project, err := p.WithServicesEnvironmentResolved(false)
-	if err != nil {
-		return fmt.Errorf("failed to resolve services environment: %w", err)
-	}
-
-	p.Project = project
 
 	return nil
 }
