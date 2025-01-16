@@ -34,7 +34,8 @@ type Project struct {
 	envFiles    []string
 }
 
-func New(ctx context.Context, projectName string) (*Project, error) {
+// New creates a new project. We init it always with all profiles by using "*"
+func New(ctx context.Context, projectName string, profiles []string) (*Project, error) {
 	projectFolder := filepath.Join(app.AppDir, projectName)
 
 	if _, err := os.Stat(projectFolder); os.IsNotExist(err) {
@@ -49,6 +50,7 @@ func New(ctx context.Context, projectName string) (*Project, error) {
 		cli.WithName(projectName),
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
+		cli.WithProfiles(profiles),
 		cli.WithExtension("x-devbox-sources", SourceConfigs{}),
 		cli.WithExtension("x-devbox-scenarios", ScenarioConfigs{}),
 		cli.WithExtension("x-devbox-hosts", HostConfigs{}),
@@ -122,8 +124,8 @@ func (p *Project) SaveState() error {
 	return nil
 }
 
-func (p *Project) Reload(ctx context.Context) error {
-	p2, err := New(ctx, p.Name)
+func (p *Project) Reload(ctx context.Context, profiles []string) error {
+	p2, err := New(ctx, p.Name, profiles)
 	if err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}

@@ -14,7 +14,7 @@ func (p *Project) Umount(ctx context.Context, sources []string) error {
 		return fmt.Errorf("failed to save state: %w", err)
 	}
 
-	if err := p.Reload(ctx); err != nil {
+	if err := p.Reload(ctx, []string{"*"}); err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 

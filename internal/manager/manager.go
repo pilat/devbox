@@ -32,7 +32,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 
 	projectNames := ListProjects("")
 	for _, projectName := range projectNames {
-		project, err := project.New(context.Background(), projectName)
+		project, err := project.New(context.Background(), projectName, []string{"*"})
 		if err != nil {
 			return nil, fmt.Errorf("failed to load project: %w", err)
 		}

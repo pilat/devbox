@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"sort"
+	"strings"
 
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/cert"
@@ -15,11 +17,23 @@ import (
 )
 
 func init() {
+	var profiles []string
+
 	cmd := &cobra.Command{
 		Use:   "up",
 		Short: "Start devbox project",
 		Long:  "That command will start devbox project",
 		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			p, err := manager.AutodetectProject(projectName)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
+
+			allProfiles := p.AllServices().GetProfiles()
+			if len(profiles) == 0 && len(allProfiles) > 0 {
+				return []string{"--profile"}, cobra.ShellCompDirectiveNoFileComp
+			}
+
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
@@ -52,6 +66,12 @@ func init() {
 				return fmt.Errorf("failed to build project: %w", err)
 			}
 
+			// By default project has all profiles enabled ("*"). Before we up container we need to reload
+			// project to have only default and selected profiles enabled.
+			if err := p.Reload(ctx, profiles); err != nil {
+				return fmt.Errorf("failed to reload project with profiles: %w", err)
+			}
+
 			if err := runUp(ctx, p); err != nil {
 				return fmt.Errorf("failed to start project: %w", err)
 			}
@@ -60,7 +80,44 @@ func init() {
 		}),
 	}
 
+	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
+
+	cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		p, err := manager.AutodetectProject(projectName)
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		return getProfileCompletions(p, toComplete)
+	})
+
 	root.AddCommand(cmd)
+}
+
+func getProfileCompletions(p *project.Project, toComplete string) ([]string, cobra.ShellCompDirective) {
+	profiles := p.AllServices().GetProfiles()
+	result := []string{}
+	for _, profile := range profiles {
+		if strings.HasPrefix(profile, toComplete) {
+			result = append(result, profile)
+		}
+	}
+
+	return result, cobra.ShellCompDirectiveNoFileComp
+}
+
+func getAvailableProfiles(p *project.Project, name string) []string {
+	allProfileNames := p.AllServices().GetProfiles()
+	sort.Strings(allProfileNames)
+
+	var values []string
+	for _, profileName := range allProfileNames {
+		if strings.HasPrefix(profileName, name) {
+			values = append(values, profileName)
+		}
+	}
+
+	return values
 }
 
 func runBuild(ctx context.Context, p *project.Project) error {

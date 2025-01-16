@@ -11,6 +11,8 @@ import (
 )
 
 func init() {
+	var profiles []string
+
 	cmd := &cobra.Command{
 		Use:               "restart",
 		Short:             "Restart services in devbox project",
@@ -39,6 +41,10 @@ func init() {
 				return fmt.Errorf("failed to update sources: %w", err)
 			}
 
+			if err := p.Reload(ctx, profiles); err != nil {
+				return fmt.Errorf("failed to reload project with profiles: %w", err)
+			}
+
 			if err := runRestart(ctx, p, args, true); err != nil {
 				return fmt.Errorf("failed to restart services: %w", err)
 			}
@@ -46,6 +52,17 @@ func init() {
 			return nil
 		}),
 	}
+
+	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
+
+	cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		p, err := manager.AutodetectProject(projectName)
+		if err != nil {
+			return []string{}, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		return getProfileCompletions(p, toComplete)
+	})
 
 	root.AddCommand(cmd)
 }

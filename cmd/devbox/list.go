@@ -39,7 +39,7 @@ func runList(ctx context.Context, filter string) error {
 
 	t := table.New("Name", "Message", "Author", "Date")
 	for _, projectName := range projects {
-		app, err := project.New(ctx, projectName)
+		app, err := project.New(ctx, projectName, []string{"*"})
 		if err != nil {
 			return fmt.Errorf("failed to get project: %w", err)
 		}

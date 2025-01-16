@@ -52,7 +52,7 @@ func runInit(ctx context.Context, name, gitURL, branch string) error {
 		return fmt.Errorf("failed to init project: %w", err)
 	}
 
-	project, err := project.New(ctx, name)
+	project, err := project.New(ctx, name, []string{"*"})
 	if err != nil {
 		return err
 	}

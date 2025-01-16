@@ -90,7 +90,7 @@ func runProjectUpdate(ctx context.Context, p *project.Project) error {
 		return fmt.Errorf("failed to get git info: %w", err)
 	}
 
-	if err := p.Reload(ctx); err != nil {
+	if err := p.Reload(ctx, []string{"*"}); err != nil {
 		return fmt.Errorf("failed to reload project: %w", err)
 	}
 
