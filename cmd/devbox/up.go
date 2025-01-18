@@ -156,9 +156,7 @@ func runUp(ctx context.Context, p *project.Project) error {
 			Inherit:       false,
 		},
 		Start: project.StartOptions{
-			Project:     p.Project,
-			Wait:        true,
-			WaitTimeout: timeout,
+			Project: p.Project,
 		},
 	}
 
