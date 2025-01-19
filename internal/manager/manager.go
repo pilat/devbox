@@ -339,6 +339,12 @@ func Init(name, url string, branch string) error {
 		return fmt.Errorf("failed to set local exclude: %w", err)
 	}
 
+	stateFile := filepath.Join(projectFolder, app.StateFile)
+	err = os.WriteFile(stateFile, []byte("{}"), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to create state file: %w", err)
+	}
+
 	return nil
 }
 
