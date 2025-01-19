@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pilat/devbox/internal/manager"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +31,7 @@ func init() {
 				projectName = guessName(gitURL)
 			}
 
-			if err := runInit(ctx, projectName, gitURL, branch); err != nil {
+			if err := runInit(projectName, gitURL, branch); err != nil {
 				return fmt.Errorf("failed to list projects: %w", err)
 			}
 
@@ -46,24 +45,15 @@ func init() {
 	root.AddCommand(cmd)
 }
 
-func runInit(ctx context.Context, name, gitURL, branch string) error {
+func runInit(name, gitURL, branch string) error {
 	fmt.Println("[*] Initializing project...")
 	if err := manager.Init(name, gitURL, branch); err != nil {
 		return fmt.Errorf("failed to init project: %w", err)
 	}
 
-	project, err := project.New(ctx, name, []string{"*"})
-	if err != nil {
-		return err
-	}
-
-	if err := runSourcesUpdate(ctx, project); err != nil {
-		return fmt.Errorf("failed to update sources: %w", err)
-	}
-
-	if err := runInfo(ctx, project); err != nil {
-		return fmt.Errorf("failed to get project info: %w", err)
-	}
+	fmt.Println("")
+	fmt.Println("Project has been successfully initialized.")
+	fmt.Println("Run `devbox --name=" + name + " info` to update project")
 
 	return nil
 }

@@ -44,8 +44,8 @@ func runList(ctx context.Context, filter string) error {
 			return fmt.Errorf("failed to get project: %w", err)
 		}
 
-		ggg := git.New(app.WorkingDir)
-		info, err := ggg.GetInfo(ctx)
+		g := git.New(app.WorkingDir)
+		info, err := g.GetInfo(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get git info: %w", err)
 		}
