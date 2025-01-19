@@ -12,6 +12,7 @@ var (
 const (
 	SourcesDir = "sources"
 	StateFile  = ".devboxstate"
+	EnvFile    = ".env"
 )
 
 func init() {

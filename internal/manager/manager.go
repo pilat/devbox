@@ -332,6 +332,7 @@ func Init(name, url string, branch string) error {
 	patterns := []string{
 		fmt.Sprintf("/%s/", app.SourcesDir),
 		fmt.Sprintf("/%s", app.StateFile),
+		fmt.Sprintf("/%s", app.EnvFile),
 	}
 
 	err = git.SetLocalExclude(patterns)
@@ -339,10 +340,14 @@ func Init(name, url string, branch string) error {
 		return fmt.Errorf("failed to set local exclude: %w", err)
 	}
 
-	stateFile := filepath.Join(projectFolder, app.StateFile)
-	err = os.WriteFile(stateFile, []byte("{}"), 0644)
-	if err != nil {
-		return fmt.Errorf("failed to create state file: %w", err)
+	for k, content := range map[string]string{
+		app.EnvFile:   "",
+		app.StateFile: "{}",
+	} {
+		err = os.WriteFile(filepath.Join(projectFolder, k), []byte(content), 0644)
+		if err != nil {
+			return fmt.Errorf("failed to create file: %w", err)
+		}
 	}
 
 	return nil

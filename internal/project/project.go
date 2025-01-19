@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/consts"
 	"github.com/pilat/devbox/internal/app"
 	"golang.org/x/net/idna"
 
@@ -34,6 +35,18 @@ type Project struct {
 	envFiles    []string
 }
 
+func init() {
+	for _, envName := range []string{
+		consts.ComposeProjectName,
+		consts.ComposePathSeparator,
+		consts.ComposeFilePath,
+		consts.ComposeDisableDefaultEnvFile,
+		consts.ComposeProfiles,
+	} {
+		os.Unsetenv(envName)
+	}
+}
+
 // New creates a new project. We init it always with all profiles by using "*"
 func New(ctx context.Context, projectName string, profiles []string) (*Project, error) {
 	projectFolder := filepath.Join(app.AppDir, projectName)
@@ -47,6 +60,8 @@ func New(ctx context.Context, projectName string, profiles []string) (*Project, 
 		cli.WithWorkingDirectory(projectFolder),
 		cli.WithDefaultConfigPath,
 		cli.WithName(projectName),
+		cli.WithEnvFiles(),
+		cli.WithDotEnv,
 		cli.WithInterpolation(true),
 		cli.WithResolvedPaths(true),
 		cli.WithProfiles(profiles),
