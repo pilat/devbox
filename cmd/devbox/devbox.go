@@ -10,7 +10,6 @@ import (
 	"github.com/docker/compose/v2/pkg/api"
 	"github.com/docker/compose/v2/pkg/compose"
 	"github.com/docker/docker/client"
-	"github.com/pilat/devbox/internal/errors"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +34,7 @@ func main() {
 
 func initCobra() error {
 	root.Use = "devbox"
-	root.SetErrPrefix("Error has occurred while executing the command:\n")
+	root.SetErrPrefix("Error has occurred while executing the command:")
 
 	root.PersistentFlags().StringVarP(&projectName, "name", "n", "", "Project name")
 
@@ -85,12 +84,6 @@ func runWrapper(f func(ctx context.Context, cmd *cobra.Command, args []string) e
 		ctx := context.Background()
 		cmd.SilenceUsage = true
 
-		err := f(ctx, cmd, args)
-
-		if err == nil {
-			return nil
-		}
-
-		return errors.AsStacktrace(err)
+		return f(ctx, cmd, args)
 	}
 }
