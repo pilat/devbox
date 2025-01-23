@@ -1,56 +1,62 @@
 # DevBox
 
-DevBox is a specialized development environment orchestrator for complex, multi-service projects. Built on top of
-Docker Compose, it manages source code, handles automatic updates, and simplifies service orchestration through a
-single CLI.
+DevBox is a lightweight CLI tool that streamlines local development for teams working on multi-service projects. It provides a way to use a single source of truth for local development environment configuration, eliminating common setup and maintenance challenges.
 
----
+Built on top of `docker compose`, DevBox enhances the standard functionality with powerful features designed to improve team productivity.
 
 ## Introduction
 
-Working on projects with multiple small, interconnected services can make setting up and maintaining a local development environment both challenging and time-consuming.
-DevBox helps teams maintain a single source of truth for their local development environment, allowing everyone to focus on coding rather than troubleshooting and keeping the environment up to date.
+Managing local development environments for projects with multiple interconnected services presents several challenges:
+- Complex service configurations
+- Version synchronization across teams
+- SSL certificate management
+- Host file configuration
+- Source code management across repositories
 
----
+DevBox solves these challenges by providing a centralized, automated approach to environment management, allowing teams to focus on development rather than infrastructure maintenance.
 
-## Key Features
+## Features
 
-- **Automatic Updates**  
-  Ensures team-wide service configurations stay in sync. When a new service is added or a configuration changes, the latest version is available for everyone.
+- **Automatic Environment Synchronization**  
+  Keeps service configurations synchronized across the team. When configurations change or new services are added, everyone automatically gets the latest version.
   
-- **Centralized Repository Control**  
-  Automatically fetches source code from stable branches of multiple repositories, reducing the need for manual version updates.
+- **Smart Source Code Management**  
+  Automatically manages source code from multiple repositories, with support for:
+  - Branch-specific checkouts
+  - Sparse checkouts for monorepos
+  - Easy switching between local and remote sources
+  - Automatic synchronization with remote repositories
 
-- **Selective Development**  
-  Allows you to develop specific services locally while others remain at their default (latest) version.
+- **Development Flexibility**  
+  Seamlessly switch between developing services locally and using their stable versions, perfect for working on specific components without managing the entire stack.
 
-- **Smart Context Detection**  
-  Detects your location in the local filesystem to infer which project or service you’re working on.
+- **Intelligent Context Detection**  
+  Automatically detects project and service context based on your current directory and Git information, reducing the need for explicit configuration.
 
-- **Predefined Scenarios**  
-  Provides scenarios for common tasks (e.g., running E2E tests) in a single configuration file, reducing the need to learn service-specific commands.
+- **Standardized Workflows**  
+  Define common development tasks as scenarios in your configuration, making it easy to run tests, manage databases, or perform other routine operations consistently across the team.
 
-- **Zero-Config SSL**  
-  Automatically generates and manages SSL certificates for local development.
+- **Zero-Configuration SSL**  
+  Automatically generates and manages SSL certificates for local development, with proper CA integration for both macOS and Linux.
 
-- **Automatic Host File Updates**  
-  Eliminates the need to manually edit `/etc/hosts` — DevBox takes care of it.
-
----
+- **Automated Host Management**  
+  Manages your `/etc/hosts` file automatically, ensuring proper local domain routing without manual intervention.
 
 ## Installation
 
-DevBox is available via Homebrew, as binaries, or you can build it from source.
-
-### Homebrew
+### Via Homebrew
 ```bash
 brew tap pilat/devbox
 brew install devbox
 ```
 
-### Binaries
-Download the latest binary from the [Releases Page](https://github.com/pilat/devbox/releases) and add it to your PATH.
+### From Binary Releases
+1. Download the appropriate binary from the [Releases Page](https://github.com/pilat/devbox/releases)
+2. Make the binary executable and add it to your PATH
 
+### System Requirements
+- Docker Engine 20.10.0 or later
+- Git 2.28 or later
 
 ## Quick Start
 
@@ -62,31 +68,38 @@ devbox init https://github.com/pilat/devbox-example \
   --branch main
 ```
 
-### Basic Commands
+### Common Operations
 ```bash
 # Start all services
-devbox --name example-app up
+devbox up
 
-# Mount local copy of the source code
-cd /path/to/your/project
+# View service status
+devbox ps
+
+# View service logs
+devbox logs
+
+# Use local source code
+cd /path/to/your/service
 devbox mount
 
-# Revert to the repository version of the source code
-cd /path/to/your/project
+# Revert to repository version
 devbox unmount
 ```
 
-## Smart Context Detection
-DevBox analyzes your current directory to determine the corresponding project and service:
-- Project Detection: Matches your Git remote URLs or checks local mounts to identify the relevant DevBox project.
-- Service Detection: Identifies which service you’re working on based on your directory structure and Git context.
-With this feature, DevBox often eliminates the need to manually specify project or service names.
+## Documentation
 
+For detailed documentation, see the [docs](docs) directory:
+- [Project Structure](https://getdevbox.org/structure/)
+- [Sources Configuration](https://getdevbox.org/sources/)
+- [SSL Certificates](https://getdevbox.org/certificates/)
+- [Host Management](https://getdevbox.org/hosts/)
 
 ## Contributing
-Contributions are always welcome! Please feel free to submit a Pull Request.
 
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
-DevBox is licensed under the MIT License.
+
+DevBox is licensed under the MIT License.  
 © 2025 Vladimir Urushev

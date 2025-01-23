@@ -1,0 +1,111 @@
+site_name: DevBox
+site_url: https://getdevbox.org
+site_description: A lightweight CLI tool that streamlines local development for teams working on multi-service projects
+site_author: Vladimir Urushev
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: light-blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: light-blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github-alt
+    logo: fontawesome/solid/layer-group
+  favicon: img/favicon.png
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+repo_name: pilat/devbox
+repo_url: https://github.com/pilat/devbox
+edit_uri: edit/main/docs/
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quick-start.md
+    - Project Structure: structure.md
+  - Core Concepts:
+    - Sources Management: sources.md
+    - SSL Certificates: certificates.md
+    - Host Management: hosts.md
+    - Scenarios: scenarios.md
+  - Commands:
+    - Project Management:
+      - Initialize Project: init.md
+      - Environment Configuration: config-env.md
+      - Update Project: update.md
+      - List Projects: list.md
+      - Project Info: info.md
+      - Destroy Project: destroy.md
+    - Service Management:
+      - Starting Services: up.md
+      - Stopping Services: down.md
+      - Restart Services: restart.md
+      - Process Status: ps.md
+      - Viewing Logs: logs.md
+    - Development Workflow:
+      - Mount Local Sources: mount-sources.md
+      - Unmount Local Sources: umount-sources.md
+      - Running Scenarios: run.md
+      - Shell Access: shell.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      base_path: docs/snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+plugins:
+  - search
