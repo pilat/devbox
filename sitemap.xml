@@ -1,95 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://mydomain.org/mysite/</loc>
+         <loc>https://pilat.github.io/devbox/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/getting-started/installation/</loc>
+         <loc>https://pilat.github.io/devbox/getting-started/installation/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/getting-started/quick-start/</loc>
+         <loc>https://pilat.github.io/devbox/getting-started/quick-start/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/reference/configuration/grace-periods/</loc>
+         <loc>https://pilat.github.io/devbox/reference/configuration/grace-periods/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/reference/configuration/overview/</loc>
+         <loc>https://pilat.github.io/devbox/reference/configuration/overview/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/reference/configuration/scenarios/</loc>
+         <loc>https://pilat.github.io/devbox/reference/configuration/scenarios/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/reference/configuration/sources/</loc>
+         <loc>https://pilat.github.io/devbox/reference/configuration/sources/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/advanced-features/certificates/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/certificates/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/advanced-features/hosts/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/hosts/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/advanced-features/profiles/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/profiles/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/basic-operations/down/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/down/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/basic-operations/logs/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/logs/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/basic-operations/run/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/run/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/basic-operations/shell/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/shell/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/basic-operations/up/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/up/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/destroy/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/destroy/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/info/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/info/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/list/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/list/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/ps/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/ps/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/restart/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/restart/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/commands/update/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/commands/update/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/project-management/development-philosophy/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/project-management/development-philosophy/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
     <url>
-         <loc>https://mydomain.org/mysite/user-guide/project-management/structure/</loc>
+         <loc>https://pilat.github.io/devbox/user-guide/project-management/structure/</loc>
          <lastmod>2025-01-23</lastmod>
     </url>
 </urlset>
