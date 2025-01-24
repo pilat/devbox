@@ -71,6 +71,7 @@ func runEmergencyProjectUpdate(ctx context.Context, projectName string) bool {
 		Project: &types.Project{},
 	}
 	fakeProject.WorkingDir = workingDir
+	fakeProject.Name = projectName
 
 	return runProjectUpdate(ctx, fakeProject) == nil
 }
