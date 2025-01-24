@@ -42,6 +42,14 @@ func init() {
 				}
 			}
 
+			if err := runHostsUpdate(p, true, false); err != nil {
+				return fmt.Errorf("failed to update hosts file: %w", err)
+			}
+
+			if err := runCertUpdate(p, true); err != nil {
+				return fmt.Errorf("failed to update certificates: %w", err)
+			}
+
 			if err := runSourcesUpdate(ctx, p); err != nil {
 				return fmt.Errorf("failed to update sources: %w", err)
 			}

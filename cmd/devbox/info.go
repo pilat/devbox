@@ -29,18 +29,6 @@ func init() {
 				return err
 			}
 
-			if err := runProjectUpdate(ctx, p); err != nil {
-				return fmt.Errorf("failed to update project: %w", err)
-			}
-
-			if err := runHostsUpdate(p, true, false); err != nil {
-				return fmt.Errorf("failed to update hosts file: %w", err)
-			}
-
-			if err := runCertUpdate(p, true); err != nil {
-				return fmt.Errorf("failed to update certificates: %w", err)
-			}
-
 			if err := runInfo(ctx, p); err != nil {
 				return fmt.Errorf("failed to get project info: %w", err)
 			}

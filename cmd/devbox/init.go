@@ -51,9 +51,12 @@ func runInit(name, gitURL, branch string) error {
 		return fmt.Errorf("failed to init project: %w", err)
 	}
 
-	fmt.Println("")
-	fmt.Println("Project has been successfully initialized.")
-	fmt.Println("Run `devbox --name=" + name + " info` to update project")
+	fmt.Println("\nProject has been successfully initialized!")
+	fmt.Printf("Next steps:\n")
+	fmt.Printf("  1. Configure environment (optional):\n")
+	fmt.Printf("     devbox --name %s config env\n\n", name)
+	fmt.Printf("  2. Start services:\n")
+	fmt.Printf("     devbox --name %s up\n", name)
 
 	return nil
 }
