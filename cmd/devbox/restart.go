@@ -93,10 +93,6 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
 
-	if !isRunning {
-		return nil
-	}
-
 	depOpt := project.IncludeDependents
 	if noDeps { // in case of manual restart, we don't need to restart dependent services
 		depOpt = project.IgnoreDependencies
@@ -109,14 +105,16 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 
 	p = projectWithServices
 
-	networksBackup := p.Networks
-	p.Networks = project.Networks{} // to avoid an attempt to remove a network
+	if isRunning {
+		networksBackup := p.Networks
+		p.Networks = project.Networks{} // to avoid an attempt to remove a network
 
-	if err := runDown(ctx, p, false); err != nil {
-		return err
+		if err := runDown(ctx, p, false); err != nil {
+			return err
+		}
+
+		p.Networks = networksBackup // network is needed for Up
 	}
-
-	p.Networks = networksBackup // network is needed for Up
 
 	if err := runBuild(ctx, p); err != nil {
 		return err
