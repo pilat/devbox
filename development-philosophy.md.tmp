@@ -1,0 +1,205 @@
+# Development Philosophy
+
+DevBox takes a unique approach to container-based development that prioritizes rapid development cycles and seamless local development experience.
+
+## The DevBox Way
+
+While containers are traditionally used to package and isolate complete applications, DevBox uses them primarily as development environments. This approach offers several key advantages:
+
+* **Instant Code Changes**: No rebuilding containers for code changes
+* **Native Development Experience**: Use your local IDE and tools
+* **Fast Feedback Loop**: See changes immediately
+* **Consistent Environments**: Everyone uses the same setup
+
+!!! note "Modern Practices vs Developer Experience"
+    Modern container practices and platforms like Kubernetes have brought incredible benefits to production environments. However, they've also introduced complexity that can slow down the development feedback loop. DevBox aims to restore the rapid prototyping and testing capabilities that developers need, while still maintaining the benefits of containerization.
+    
+    By thoughtfully extending Docker Compose and focusing on developer workflows, DevBox helps bridge the gap between modern deployment practices and efficient local development. This means you can maintain production-ready container practices while enjoying fast, iterative development.
+
+!!! info "Best Fit for DevBox"
+    DevBox's approach works particularly well for:
+    
+    * Teams practicing continuous deployment with stable main branches
+    * Microservice architectures with multiple lightweight services
+    * Projects requiring rapid prototyping and quick iterations
+    * Development workflows focused on fast feedback loops
+    
+    It might not be the optimal choice for:
+    
+    * Heavy computational or data processing services
+    * Teams with strict isolation requirements
+    * Projects with complex build-time optimizations
+    * Environments where production parity is critical
+
+!!! note "Production vs Development"
+    This development-focused approach intentionally differs from how containers are typically used in production environments. While production containers package the entire application, DevBox containers serve as development environments with mounted source code. This trade-off significantly improves development speed and experience.
+
+## How It Works
+
+### Source Code Mounting
+
+DevBox makes it easy to mount your local source code into containers:
+
+```yaml
+services:
+  api:
+    volumes:
+      # Mount source code
+      - ./sources/api:/app
+      # Important: Mount persistent volumes AFTER source mounts
+      - api_storage:/app/storage
+```
+
+### Volume Order Matters
+
+When mounting volumes, order is crucial:
+
+```yaml
+services:
+  api:
+    volumes:
+      # ❌ Wrong order: persistent volume will hide source code
+      - api_storage:/app/storage
+      - ./sources/api:/app
+
+      # ✅ Correct order: source code mounted first
+      - ./sources/api:/app
+      - api_storage:/app/storage
+```
+
+### Live Reloading
+
+For optimal development experience, configure your application for live reloading:
+
+```yaml
+services:
+  # Go service with live reloading
+  api:
+    command: ["air", "-c", ".air.toml"]
+    volumes:
+      - ./sources/api:/app
+      - api_tmp:/app/tmp
+
+  # Node.js service with nodemon
+  frontend:
+    command: ["nodemon", "app.js"]
+    volumes:
+      - ./sources/frontend:/app
+      - node_modules:/app/node_modules
+```
+
+## Best Practices
+
+### 1. Centralized Dockerfile Management
+
+```yaml
+x-devbox-sources:
+  api:
+    url: https://github.com/company/backend-services.git
+    branch: main
+    sparseCheckout:
+      - services/api/Dockerfile
+      - services/api/docker
+```
+
+### 2. Development-Specific Volumes
+
+```yaml
+services:
+  api:
+    volumes:
+      # Source code
+      - ./sources/api:/app
+      
+      # Development-specific mounts
+      - api_node_modules:/app/node_modules
+      - api_tmp:/app/tmp
+      - api_logs:/app/logs
+      
+volumes:
+  api_node_modules:
+  api_tmp:
+  api_logs:
+```
+
+### 3. Language-Specific Configurations
+
+#### Go Applications
+```yaml
+services:
+  api:
+    command: ["air", "-c", ".air.toml"]
+    volumes:
+      - ./sources/api:/app
+      - api_tmp:/app/tmp  # For build artifacts
+```
+
+#### Node.js Applications
+```yaml
+services:
+  frontend:
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./sources/frontend:/app
+      - node_modules:/app/node_modules  # Preserve dependencies
+```
+
+#### PHP Applications
+```yaml
+services:
+  web:
+    volumes:
+      - ./sources/web:/var/www/html
+      - vendor:/var/www/html/vendor  # Preserve Composer packages
+      - cache:/var/www/html/storage/cache
+```
+
+## Common Pitfalls
+
+### Hidden Source Code
+
+```yaml
+services:
+  api:
+    volumes:
+      # ❌ Cache volume hides source directory
+      - cache:/app/src/cache
+      - ./sources/api:/app
+      
+      # ✅ Cache mounted after source
+      - ./sources/api:/app
+      - cache:/app/src/cache
+```
+
+### Missing Build Context
+
+```yaml
+services:
+  api:
+    build:
+      context: ./sources/api  # Points to mounted source
+      dockerfile: Dockerfile
+    volumes:
+      - ./sources/api:/app    # Mount same directory
+```
+
+## Tips for Success
+
+* **Use Live Reload Tools**: Configure language-specific tools for automatic reloading
+* **Mount Selectively**: Only mount directories needed for development
+* **Preserve Dependencies**: Use volumes for package directories (node_modules, vendor)
+* **Watch Volume Order**: Mount source code before persistent volumes
+* **Share Dockerfiles**: Keep development Dockerfiles in your manifest repository
+* **Development Defaults**: Configure reasonable defaults for development environment
+
+## Conclusion
+
+While this approach differs from traditional container usage, it provides an optimal development experience with:
+
+* Instant code updates
+* Native tooling support
+* Fast iteration cycles
+* Consistent environments
+* No rebuild delays
+
+The trade-off between development convenience and production-like environments is intentional and has proven to significantly improve developer productivity. 

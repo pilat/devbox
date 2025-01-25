@@ -2,94 +2,98 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://pilat.github.io/devbox/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/getting-started/installation/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/certificates/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/getting-started/quick-start/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/config-env/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/reference/configuration/grace-periods/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/destroy/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/reference/configuration/overview/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/down/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/reference/configuration/scenarios/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/hosts/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/reference/configuration/sources/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/info/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/certificates/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/init/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/hosts/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/installation/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/advanced-features/profiles/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/list/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/down/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/logs/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/logs/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/mount-sources/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/run/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/ps/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/shell/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/quick-start/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/basic-operations/up/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/restart/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/destroy/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/run/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/info/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/scenarios/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/list/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/shell/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/ps/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/sources/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/restart/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/structure/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/commands/update/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/umount-sources/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/project-management/development-philosophy/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/up/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
     <url>
-         <loc>https://pilat.github.io/devbox/user-guide/project-management/structure/</loc>
-         <lastmod>2025-01-23</lastmod>
+         <loc>https://pilat.github.io/devbox/update/</loc>
+         <lastmod>2025-01-25</lastmod>
+    </url>
+    <url>
+         <loc>https://pilat.github.io/devbox/snippets/auto-detect-note/</loc>
+         <lastmod>2025-01-25</lastmod>
     </url>
 </urlset>

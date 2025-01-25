@@ -1,0 +1,31 @@
+# DevBox Commands
+
+DevBox provides a comprehensive set of commands organized into three main categories:
+
+## Service Management
+
+Commands for controlling your services' lifecycle:
+
+- `up` - Start services
+- `down` - Stop services
+- `restart` - Restart services
+- `ps` - View running processes
+- `logs` - View service logs
+
+## Project Operations
+
+Commands for managing your DevBox projects:
+
+- `list` - List all projects
+- `info` - View project details
+- `update` - Update project configuration and sources
+- `destroy` - Remove a project
+
+## Development Commands
+
+Commands for day-to-day development:
+
+- `run` - Execute commands in services
+- `shell` - Get interactive shell access
+
+For detailed information about each command, please refer to their respective documentation pages. 
