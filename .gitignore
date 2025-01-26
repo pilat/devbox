@@ -10,3 +10,7 @@ TODO
 build-errors.log
 .golangci.yml
 site/
+tests/e2e/venv/
+tests/e2e/__pycache__/
+tests/e2e/.pytest_cache/
+tests/e2e/watch.sh

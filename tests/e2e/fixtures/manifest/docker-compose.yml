@@ -1,0 +1,21 @@
+x-devbox-sources:
+  service-1:
+    url: "SOURCE_1_REPO"
+    branch: master
+services:
+  web:
+    image: nginx:alpine
+    stop_grace_period: 0s
+    ports:
+      - "8080:80"
+  service-1:
+    image: local/service-1:latest
+    stop_grace_period: 0s
+    build:
+      context: ./sources/service-1
+      dockerfile: Dockerfile
+    command: ["go", "run", "./cmd/service-1/main.go"]
+    volumes:
+      - ./sources/service-1:/app
+    ports:
+      - "8081:80"
