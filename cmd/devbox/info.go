@@ -71,14 +71,22 @@ func runInfo(ctx context.Context, p *project.Project) error {
 		mountsTable.AppendRow(name, localPath)
 	}
 
-	fmt.Println("")
-	fmt.Println(" Sources:")
-	sourcesTable.Render()
+	fmt.Println("Current project:", p.Name)
+
+	if len(p.Sources) > 0 {
+		fmt.Println("")
+		fmt.Println(" Sources:")
+		sourcesTable.Render()
+	}
 
 	if len(p.LocalMounts) > 0 {
 		fmt.Println("")
 		fmt.Println(" Mounts:")
 		mountsTable.Render()
+	}
+
+	if len(p.Sources) == 0 && len(p.LocalMounts) == 0 {
+		fmt.Println("Project has no services or mounts")
 	}
 
 	return nil

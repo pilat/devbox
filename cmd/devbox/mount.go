@@ -44,7 +44,6 @@ func init() {
 				return err
 			}
 
-			// if sourceName == "" {
 			sources, affectedServices, err := manager.AutodetectSource(p, sourceName, manager.AutodetectSourceForMount)
 			if err != nil {
 				return fmt.Errorf("failed to autodetect source: %w", err)

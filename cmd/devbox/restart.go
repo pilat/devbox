@@ -93,6 +93,10 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
 
+	if noDeps == false && !isRunning {
+		return nil
+	}
+
 	depOpt := project.IncludeDependents
 	if noDeps { // in case of manual restart, we don't need to restart dependent services
 		depOpt = project.IgnoreDependencies

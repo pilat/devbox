@@ -28,6 +28,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return nil, fmt.Errorf("failed to get current directory: %w", err)
 	}
 
+	// Load projects
 	projects := make([]*project.Project, 0)
 
 	projectNames := ListProjects("")
@@ -40,6 +41,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 		projects = append(projects, project)
 	}
 
+	// If project name was provided we are checking it and immediately return if found
 	if name != "" {
 		for _, project := range projects {
 			if project.Name == name {
@@ -53,7 +55,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 	var foundProject *project.Project
 	ambiguous := false
 
-	// if the current dir is a source of one project
+	// 1. We are checking if the current dir is a source of one project
 	for _, project := range projects {
 		for _, v := range project.LocalMounts {
 			if v == curDir {
@@ -70,9 +72,9 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return foundProject, nil
 	}
 
+	// 2. If not, we are checking sources of all projects
 	foundProject = nil
 
-	// when the current dir is a git repo
 	g := git.New(curDir)
 	remoteURL, err := g.GetRemote(context.TODO())
 	if err != nil {
@@ -138,7 +140,36 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return nil, fmt.Errorf("ambiguous project, please specify project name")
 	}
 
-	return foundProject, fmt.Errorf("project is unknown")
+	foundProject = nil
+
+	// 3. If not, we are checking if the current dir is a git repo of one project
+	for _, project := range projects {
+		projectDir := project.WorkingDir
+
+		projectGit := git.New(projectDir)
+		remoteURLCurrent, err := projectGit.GetRemote(context.TODO())
+		if err != nil {
+			continue
+		}
+
+		remoteURLCurrent = normalizeRemoteURL(remoteURLCurrent)
+
+		if remoteURL != remoteURLCurrent {
+			continue
+		}
+
+		if foundProject != nil && foundProject != project {
+			ambiguous = true
+		}
+
+		foundProject = project
+	}
+
+	if foundProject != nil && !ambiguous {
+		return foundProject, nil
+	}
+
+	return nil, fmt.Errorf("project is unknown")
 }
 
 func AutodetectSource(project *project.Project, sourceNameSel string, purpose AutodetectSourceType) ([]string, []string, error) {
@@ -239,13 +270,16 @@ func AutodetectSource(project *project.Project, sourceNameSel string, purpose Au
 
 		// Check all services using this source for affected services
 		for _, service := range project.Services {
-			for _, volume := range service.Volumes {
-				if volume.Source != expectedPath {
-					continue
-				}
-
+			if service.Build != nil && service.Build.Context == expectedPath {
 				sources[relSourcePath] = true
 				affectedServices[service.Name] = true
+			}
+
+			for _, volume := range service.Volumes {
+				if volume.Source == expectedPath {
+					sources[relSourcePath] = true
+					affectedServices[service.Name] = true
+				}
 			}
 		}
 	}
@@ -272,6 +306,18 @@ func GetLocalMountCandidates(project *project.Project, filter string) []string {
 	for sourceName := range project.Sources {
 		sourcePath := filepath.Join(project.WorkingDir, app.SourcesDir, sourceName)
 		for _, service := range project.Services {
+			if service.Build != nil && strings.HasPrefix(service.Build.Context, sourcePath) {
+				relSourcePath, _ := filepath.Rel(project.WorkingDir, service.Build.Context)
+				relSourcePath = "./" + relSourcePath
+				results[relSourcePath] = true
+
+				if _, ok := project.LocalMounts[relSourcePath]; ok {
+					continue
+				}
+
+				results[relSourcePath] = true
+			}
+
 			for _, volume := range service.Volumes {
 				if volume.Type == "bind" && strings.HasPrefix(volume.Source, sourcePath) {
 					relSourcePath, _ := filepath.Rel(project.WorkingDir, volume.Source)
