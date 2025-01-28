@@ -318,9 +318,9 @@ func mountSourceVolumes(p *Project) error {
 			}
 
 			sourceName := "." + strings.TrimPrefix(volume.Source, fullPathToSources)
-			// if !strings.HasPrefix(sourceName, "./sources/") {
-			// 	continue
-			// }
+			if !strings.HasPrefix(sourceName, "./sources/") {
+				continue
+			}
 
 			altMountPath, ok := p.LocalMounts[sourceName]
 			if !ok {

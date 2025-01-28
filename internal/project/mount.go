@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func (p *Project) Mount(ctx context.Context, source string, path string) error {
+func (p *Project) Mount(ctx context.Context, sources []string, path string) error {
 	path = p.absPath(path)
 
 	if !filepath.IsAbs(path) {
@@ -31,7 +31,9 @@ func (p *Project) Mount(ctx context.Context, source string, path string) error {
 		return fmt.Errorf("failed to get path: %w", err)
 	}
 
-	p.LocalMounts[source] = path
+	for _, sourceName := range sources {
+		p.LocalMounts[sourceName] = path
+	}
 
 	if err := p.SaveState(); err != nil {
 		return fmt.Errorf("failed to save state: %w", err)

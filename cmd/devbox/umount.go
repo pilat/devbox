@@ -24,7 +24,7 @@ func init() {
 			}
 
 			if sourceName == "" {
-				if sources, _, _ := manager.AutodetectSource(p, ""); len(sources) > 0 {
+				if sources, _, _ := manager.AutodetectSource(p, "", manager.AutodetectSourceForUmount); len(sources) > 0 {
 					return []string{}, cobra.ShellCompDirectiveNoFileComp
 				}
 			}
@@ -41,12 +41,12 @@ func init() {
 				return err
 			}
 
-			sourceNameDetected, affectedServices, err := manager.AutodetectSource(p, sourceName)
+			sources, affectedServices, err := manager.AutodetectSource(p, sourceName, manager.AutodetectSourceForUmount)
 			if err != nil {
 				return fmt.Errorf("failed to autodetect source: %w", err)
 			}
 
-			if err := runUmount(ctx, p, sourceNameDetected); err != nil {
+			if err := runUmount(ctx, p, sources); err != nil {
 				return fmt.Errorf("failed to mount source code: %w", err)
 			}
 
@@ -76,8 +76,8 @@ func init() {
 	root.AddCommand(cmd)
 }
 
-func runUmount(ctx context.Context, p *project.Project, detectedSource string) error {
-	err := p.Umount(ctx, detectedSource)
+func runUmount(ctx context.Context, p *project.Project, sources []string) error {
+	err := p.Umount(ctx, sources)
 	if err != nil {
 		return fmt.Errorf("failed to mount source code: %w", err)
 	}
