@@ -120,16 +120,20 @@ func checkSourceByGitRemote(sourcePath string, normalizedURL string) bool {
 	return matches
 }
 
-// detectAffectedServices returns a map of service names that use the given path
+// detectAffectedServices returns a map of service names that use the given path. It expects relative to project's
+// working dir path and returns services that use this path in their build context or volumes. It compares by
+// prefix because containers may mount not exact path.
 func detectAffectedServices(project *project.Project, path string) map[string]bool {
+	absPath := filepath.Join(project.WorkingDir, path)
+
 	affected := make(map[string]bool)
 	for _, service := range project.Services {
-		if service.Build != nil && service.Build.Context == path {
+		if service.Build != nil && strings.HasPrefix(service.Build.Context, absPath) {
 			affected[service.Name] = true
 		}
 
 		for _, volume := range service.Volumes {
-			if volume.Source == path {
+			if strings.HasPrefix(volume.Source, absPath) {
 				affected[service.Name] = true
 			}
 		}
