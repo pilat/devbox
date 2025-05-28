@@ -169,6 +169,32 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return foundProject, nil
 	}
 
+	// Fallback: If no project is found and not ambiguous, check if there's only one project overall.
+	if foundProject == nil && !ambiguous {
+		allProjectNames := ListProjects("")
+		if len(allProjectNames) == 1 {
+			singleProjectName := allProjectNames[0]
+			loadedProject, err := project.New(context.Background(), singleProjectName, []string{"*"})
+			if err == nil { // If loading the single project is successful
+				foundProject = loadedProject
+				// Reset ambiguous to false as we've made a definitive choice.
+				// Although, it should already be false to enter this block.
+				ambiguous = false 
+			}
+			// If project.New fails, we can log the error or let it fall through
+			// to the "project is unknown" error, which is the current behavior.
+		}
+	}
+
+	// Re-check after fallback attempt
+	if foundProject != nil && !ambiguous {
+		return foundProject, nil
+	}
+
+	if ambiguous {
+		return nil, fmt.Errorf("ambiguous project, please specify project name")
+	}
+
 	return nil, fmt.Errorf("project is unknown")
 }
 
