@@ -179,7 +179,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 				foundProject = loadedProject
 				// Reset ambiguous to false as we've made a definitive choice.
 				// Although, it should already be false to enter this block.
-				ambiguous = false 
+				ambiguous = false
 			}
 			// If project.New fails, we can log the error or let it fall through
 			// to the "project is unknown" error, which is the current behavior.
