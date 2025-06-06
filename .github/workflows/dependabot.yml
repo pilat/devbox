@@ -1,7 +1,6 @@
 version: 2
 updates:
-  # Enable version updates for Go
   - package-ecosystem: "gomod"
-    directory: "/" # Location of package manifests
+    directory: "/"
     schedule:
       interval: "weekly"
