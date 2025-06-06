@@ -167,6 +167,7 @@ func (s *svc) reset(ctx context.Context) error {
 
 func (s *svc) exec(ctx context.Context, name string, args ...string) (string, error) {
 	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
