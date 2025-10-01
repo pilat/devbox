@@ -14,7 +14,7 @@ type ScenarioConfig struct {
 	Description string   `yaml:"description"`
 	Command     []string `yaml:"command"`
 	Entrypoint  []string `yaml:"entrypoint"`
-	Tty         *bool    `yaml:"tty"`        // default: true
+	Tty         *bool    `yaml:"tty"`        // default: auto-detect
 	Interactive *bool    `yaml:"stdin_open"` // default: true
 	WorkingDir  string   `yaml:"working_dir"`
 	User        string   `yaml:"user"`

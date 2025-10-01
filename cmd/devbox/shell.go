@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/docker/docker/api/types/container"
@@ -15,6 +16,8 @@ import (
 )
 
 func init() {
+	var noTty bool
+
 	cmd := &cobra.Command{
 		Use:   "shell <service>",
 		Short: "Run interactive shell in one of the services",
@@ -32,7 +35,7 @@ func init() {
 				return err
 			}
 
-			if err := runShell(ctx, p, args[0]); err != nil {
+			if err := runShell(ctx, p, args[0], noTty); err != nil {
 				return fmt.Errorf("failed to run shell: %w", err)
 			}
 
@@ -40,10 +43,12 @@ func init() {
 		}),
 	}
 
+	cmd.Flags().BoolVarP(&noTty, "no-tty", "t", false, "Do not allocate a pseudo-TTY")
+
 	root.AddCommand(cmd)
 }
 
-func runShell(ctx context.Context, p *project.Project, serviceName string) error {
+func runShell(ctx context.Context, p *project.Project, serviceName string, noTtyFlag bool) error {
 	_, ok := p.Services[serviceName]
 	if !ok {
 		return fmt.Errorf("service %q not found", serviceName)
@@ -73,10 +78,17 @@ func runShell(ctx context.Context, p *project.Project, serviceName string) error
 		return fmt.Errorf("failed to find a shell")
 	}
 
+	var tty bool
+	if noTtyFlag {
+		tty = false
+	} else {
+		tty = isTTYAvailable()
+	}
+
 	opts := project.RunOptions{
 		Service:     serviceName,
 		Interactive: true,
-		Tty:         true,
+		Tty:         tty,
 		Command:     []string{lastShell},
 	}
 
@@ -156,4 +168,13 @@ func filterLabels(projectName, serviceName string) filters.Args {
 	})
 
 	return filters.NewArgs(pairs...)
+}
+
+func isTTYAvailable() bool {
+	stat, err := os.Stdin.Stat()
+	if err != nil {
+		return false
+	}
+
+	return (stat.Mode() & os.ModeCharDevice) != 0
 }

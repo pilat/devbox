@@ -11,6 +11,8 @@ import (
 )
 
 func init() {
+	var noTty bool
+
 	cmd := &cobra.Command{
 		Use:   "run <scenario>",
 		Short: "Run scenario defined in devbox project",
@@ -42,7 +44,7 @@ func init() {
 				args = []string{}
 			}
 
-			if err := runRun(ctx, p, command, args); err != nil {
+			if err := runRun(ctx, p, command, args, noTty); err != nil {
 				return fmt.Errorf("failed to run scenario: %w", err)
 			}
 
@@ -50,12 +52,13 @@ func init() {
 		}),
 	}
 
+	cmd.Flags().BoolVarP(&noTty, "no-tty", "t", false, "Do not allocate a pseudo-TTY")
 	cmd.Flags().SetInterspersed(false)
 
 	root.AddCommand(cmd)
 }
 
-func runRun(ctx context.Context, p *project.Project, command string, args []string) error {
+func runRun(ctx context.Context, p *project.Project, command string, args []string, noTtyFlag bool) error {
 	isRunning, err := isRunning(ctx, apiService, p)
 	if err != nil {
 		return fmt.Errorf("failed to check if services are running: %w", err)
@@ -79,9 +82,13 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 		interactive = *scenario.Interactive
 	}
 
-	tty := true
-	if scenario.Tty != nil {
+	var tty bool
+	if noTtyFlag {
+		tty = false
+	} else if scenario.Tty != nil {
 		tty = *scenario.Tty
+	} else {
+		tty = isTTYAvailable()
 	}
 
 	opts := project.RunOptions{
