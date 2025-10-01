@@ -7,11 +7,11 @@ require (
 	github.com/docker/cli v27.4.0+incompatible
 	github.com/docker/compose/v2 v2.32.1
 	github.com/docker/docker v27.4.0+incompatible
-	github.com/jedib0t/go-pretty/v6 v6.6.5
+	github.com/jedib0t/go-pretty/v6 v6.6.8
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.30.0
-	golang.org/x/term v0.27.0
+	golang.org/x/term v0.29.0
 )
 
 require (
@@ -130,7 +130,7 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/r3labs/sse v0.0.0-20210224172625-26fe804710bc // indirect
-	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
 	github.com/serialx/hashring v0.0.0-20200727003509-22c0c7ab6b1b // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
@@ -165,9 +165,9 @@ require (
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241104194629-dd2ea8efbc28 // indirect
