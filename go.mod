@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/compose-spec/compose-go/v2 v2.4.6
-	github.com/docker/cli v27.4.0+incompatible
+	github.com/docker/cli v28.4.0+incompatible
 	github.com/docker/compose/v2 v2.32.1
 	github.com/docker/docker v27.4.0+incompatible
 	github.com/jedib0t/go-pretty/v6 v6.6.5
@@ -15,7 +15,6 @@ require (
 )
 
 require (
-	dario.cat/mergo v1.0.1 // indirect
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24 // indirect
 	github.com/AlecAivazis/survey/v2 v2.3.7 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
