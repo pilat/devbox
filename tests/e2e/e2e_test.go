@@ -46,7 +46,7 @@ func (s *E2ESuite) SetupSuite() {
 	// Clean up leftover temp directories from previous runs
 	oldTempDirs, _ := filepath.Glob(filepath.Join(os.TempDir(), "devbox-e2e-*"))
 	for _, dir := range oldTempDirs {
-		os.RemoveAll(dir)
+		_ = os.RemoveAll(dir)
 	}
 
 	s.tempDir, err = os.MkdirTemp("", "devbox-e2e-")
@@ -60,7 +60,7 @@ func (s *E2ESuite) SetupSuite() {
 
 	// Clean previous test-app project if exists (only this specific project)
 	if _, err := os.Stat(s.projectDir); err == nil {
-		os.RemoveAll(s.projectDir)
+		_ = os.RemoveAll(s.projectDir)
 	}
 
 	// Setup manifest repo
@@ -105,7 +105,7 @@ func (s *E2ESuite) SetupSuite() {
 	// Create hosts file
 	f, err := os.Create(s.hostsFile)
 	s.Require().NoError(err)
-	f.Close()
+	_ = f.Close()
 }
 
 func (s *E2ESuite) TearDownSuite() {
@@ -124,10 +124,10 @@ func (s *E2ESuite) TearDownSuite() {
 
 	// Clean directories
 	if s.projectDir != "" {
-		os.RemoveAll(s.projectDir)
+		_ = os.RemoveAll(s.projectDir)
 	}
 	if s.tempDir != "" {
-		os.RemoveAll(s.tempDir)
+		_ = os.RemoveAll(s.tempDir)
 	}
 }
 
@@ -225,7 +225,7 @@ func (s *E2ESuite) checkServiceResponse(url, expected string) bool {
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false
@@ -257,7 +257,7 @@ func (s *E2ESuite) removeBuildContextFromDockerCompose() {
 
 func (s *E2ESuite) cleanupProject() {
 	s.devboxRun("destroy", "--name", "test-app")
-	os.RemoveAll(s.projectDir)
+	_ = os.RemoveAll(s.projectDir)
 }
 
 func (s *E2ESuite) resetSourceFile() {

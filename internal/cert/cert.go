@@ -237,7 +237,12 @@ func decodePEM[T any](data []byte) (*T, error) {
 		return nil, fmt.Errorf("failed to parse PEM block: %w", err)
 	}
 
-	return result.(*T), nil
+	typedResult, ok := result.(*T)
+	if !ok {
+		return nil, fmt.Errorf("unexpected type in PEM decoding")
+	}
+
+	return typedResult, nil
 }
 
 func generateCertificate(isCA bool, parentCert *x509.Certificate, parentKey *rsa.PrivateKey, commonName string, extra ...string) ([]byte, []byte, error) {
@@ -262,9 +267,7 @@ func generateCertificate(isCA bool, parentCert *x509.Certificate, parentKey *rsa
 		certTemplate.NotAfter = time.Now().Add(2 * 365 * 24 * time.Hour) // 2 year for CA
 	} else {
 		certTemplate.DNSNames = append(certTemplate.DNSNames, commonName)
-		for _, name := range extra {
-			certTemplate.DNSNames = append(certTemplate.DNSNames, name)
-		}
+		certTemplate.DNSNames = append(certTemplate.DNSNames, extra...)
 	}
 
 	if parentCert == nil || parentKey == nil {

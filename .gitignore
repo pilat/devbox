@@ -8,7 +8,6 @@ TODO
 /vendor
 .air.toml
 build-errors.log
-.golangci.yml
 site/
 tests/e2e/venv/
 tests/e2e/__pycache__/

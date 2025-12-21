@@ -1,6 +1,6 @@
-.PHONY: all tidy vendor lint test test-e2e build clean
+.PHONY: all tidy vendor lint test test-e2e
 
-all: tidy vendor lint test build
+all: tidy vendor lint test
 
 tidy:
 	go mod tidy
@@ -16,9 +16,3 @@ test:
 
 test-e2e:
 	go test -v ./tests/e2e/ -timeout 10m
-
-build:
-	go build -o devbox ./cmd/devbox/
-
-clean:
-	rm -f devbox

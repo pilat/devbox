@@ -31,8 +31,7 @@ type Project struct {
 	LocalMounts map[string]string // some service's full mount path -> local path
 	HasHosts    bool
 
-	hostConfigs HostConfigs
-	envFiles    []string
+	envFiles []string
 }
 
 func init() {
@@ -43,7 +42,7 @@ func init() {
 		consts.ComposeDisableDefaultEnvFile,
 		consts.ComposeProfiles,
 	} {
-		os.Unsetenv(envName)
+		_ = os.Unsetenv(envName)
 	}
 }
 
@@ -196,7 +195,7 @@ func loadState(p *Project) error {
 
 func applySources(p *Project) error {
 	if s, ok := p.Extensions["x-devbox-sources"]; ok {
-		p.Sources = s.(SourceConfigs) // nolint: forcetypeassert
+		p.Sources = s.(SourceConfigs) //nolint: forcetypeassert
 	}
 
 	return nil
@@ -204,7 +203,7 @@ func applySources(p *Project) error {
 
 func applyScenarios(p *Project) error {
 	if s, ok := p.Extensions["x-devbox-scenarios"]; ok {
-		p.Scenarios = s.(ScenarioConfigs) // nolint: forcetypeassert
+		p.Scenarios = s.(ScenarioConfigs) //nolint: forcetypeassert
 	}
 
 	return nil
@@ -212,7 +211,7 @@ func applyScenarios(p *Project) error {
 
 func applyHosts(p *Project) error {
 	if s, ok := p.Extensions["x-devbox-hosts"]; ok {
-		hostConfigs := s.(HostConfigs) // nolint: forcetypeassert
+		hostConfigs := s.(HostConfigs) //nolint: forcetypeassert
 
 		ipToHosts := make(map[string][]string)
 		for _, item := range hostConfigs {
@@ -246,7 +245,7 @@ func applyHosts(p *Project) error {
 
 func applyCert(p *Project) error {
 	if s, ok := p.Extensions["x-devbox-cert"]; ok {
-		p.CertConfig = s.(CertConfig) // nolint: forcetypeassert
+		p.CertConfig = s.(CertConfig) //nolint: forcetypeassert
 
 		if p.CertConfig.CertFile != "" {
 			p.CertConfig.CertFile = p.absPath(p.CertConfig.CertFile)
@@ -263,7 +262,7 @@ func setupGracePeriod(p *Project) error {
 	var defaultStopGracePeriod *Duration
 
 	if s, ok := p.Extensions["x-devbox-default-stop-grace-period"]; ok {
-		v := s.(Duration) // nolint: forcetypeassert
+		v := s.(Duration) //nolint: forcetypeassert
 		defaultStopGracePeriod = &v
 	}
 
@@ -305,7 +304,7 @@ func applyLabels(p *Project) error {
 }
 
 func mountSourceVolumes(p *Project) error {
-	fullPathToSources := filepath.Join(p.WorkingDir)
+	fullPathToSources := p.WorkingDir
 
 	for name, service := range p.Services {
 		envPrefix := fmt.Sprintf("DEVBOX_%s_", convertToEnvName(service.Name))
@@ -353,12 +352,10 @@ func convertToEnvName(name string) string {
 		if unicode.IsLetter(char) || unicode.IsDigit(char) {
 			result.WriteRune(unicode.ToUpper(char))
 			prevWasUnderscore = false
-		} else {
+		} else if !prevWasUnderscore {
 			// Replace invalid characters with underscores, avoiding consecutive underscores
-			if !prevWasUnderscore {
-				result.WriteRune('_')
-				prevWasUnderscore = true
-			}
+			result.WriteRune('_')
+			prevWasUnderscore = true
 		}
 	}
 

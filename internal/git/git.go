@@ -39,7 +39,7 @@ func (s *svc) SetLocalExclude(patterns []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open exclude file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	for _, pattern := range patterns {
 		_, err = file.WriteString(pattern + "\n")
@@ -54,7 +54,7 @@ func (s *svc) SetLocalExclude(patterns []string) error {
 func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []string) error {
 	// if there is no `.git` directory we should not to try to reset because it will try to lock a repo above
 	if _, err := os.Stat(filepath.Join(s.targetPath, ".git")); os.IsNotExist(err) {
-		os.RemoveAll(s.targetPath)
+		_ = os.RemoveAll(s.targetPath)
 	}
 
 	isExist := false
