@@ -56,7 +56,7 @@ func init() {
 
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
-	cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		p, err := manager.AutodetectProject(projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
@@ -93,7 +93,7 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 		return fmt.Errorf("failed to check if services are running: %w", err)
 	}
 
-	if noDeps == false && !isRunning {
+	if !noDeps && !isRunning {
 		return nil
 	}
 

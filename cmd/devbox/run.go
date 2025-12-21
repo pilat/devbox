@@ -83,11 +83,12 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 	}
 
 	var tty bool
-	if noTtyFlag {
+	switch {
+	case noTtyFlag:
 		tty = false
-	} else if scenario.Tty != nil {
+	case scenario.Tty != nil:
 		tty = *scenario.Tty
-	} else {
+	default:
 		tty = isTTYAvailable()
 	}
 

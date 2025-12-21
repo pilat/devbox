@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# DevBox - Multi-service local development CLI tool
+# Built with Go 1.23, Cobra CLI, Docker Compose integration
+
+language: "en-US"
+tone_instructions: "Review as an experienced Go developer. Be direct and technical. Focus on correctness, security, and idiomatic Go patterns."
+early_access: false
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+
+  path_filters:
+    - "!vendor/**"
+    - "!**/*_test.go"
+    - "!tests/e2e/fixtures/**"
+
+  path_instructions:
+    - path: "cmd/devbox/**/*.go"
+      instructions: |
+        This directory contains CLI commands using Cobra framework.
+        Each command is in a separate file with an init() function that registers via root.AddCommand().
+
+        Review for:
+        - Proper error handling with context wrapping (fmt.Errorf with %w)
+        - Consistent command structure following existing patterns
+        - Appropriate use of runWrapper for context handling
+        - Clear, concise command descriptions
+        - No over-engineering - only implement what's needed
+
+    - path: "internal/**/*.go"
+      instructions: |
+        Core packages providing project functionality:
+        - project/: Project configuration, Docker Compose extensions (x-devbox-*)
+        - manager/: Project/service autodetection from current directory
+        - git/: Git operations (clone, sparse checkout, sync)
+        - cert/: SSL certificate generation
+        - hosts/: /etc/hosts management with project-scoped markers
+        - table/: CLI table output formatting
+
+        Review for:
+        - Clean interfaces and proper encapsulation
+        - Error wrapping with context
+        - No interface{} - use 'any' instead (enforced by linter)
+        - YAGNI principle - no speculative features or premature abstractions
+        - Security considerations for host file and certificate operations
+
+    - path: "internal/project/**/*.go"
+      instructions: |
+        Project configuration extending Docker Compose with x-devbox extensions:
+        - x-devbox-sources: Repository definitions with branch and sparse checkout
+        - x-devbox-scenarios: Named command shortcuts
+        - x-devbox-hosts: /etc/hosts entries
+        - x-devbox-cert: SSL certificate domains
+
+        State is persisted in .devboxstate JSON file.
+        Mount system replaces volume binds with local paths.
+
+        Review for proper parsing and validation of compose extensions.
+
+    - path: "internal/manager/**/*.go"
+      instructions: |
+        Project autodetection with three-step process:
+        1. Check if directory is a local mount of any project
+        2. Match Git remote URL + path against project source definitions
+        3. Check if directory is the project's manifest repository
+
+        Review for edge cases in path matching and Git remote detection.
+
+    - path: "tests/e2e/**/*.go"
+      instructions: |
+        E2E tests written in Go using testify/suite.
+        Tests run against the built devbox binary.
+
+        Review for:
+        - Clear test naming and organization
+        - Proper cleanup of test resources (containers, temp dirs)
+        - Realistic test scenarios
+
+  tools:
+    golangci-lint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    yamllint:
+      enabled: true
+    hadolint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    actionlint:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  learnings:
+    scope: "local"
+  pull_requests:
+    scope: "local"

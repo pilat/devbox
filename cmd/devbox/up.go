@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
-	"sort"
 	"strings"
 	"time"
 
@@ -78,7 +77,7 @@ func init() {
 
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
-	cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		p, err := manager.AutodetectProject(projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
@@ -100,20 +99,6 @@ func getProfileCompletions(p *project.Project, toComplete string) ([]string, cob
 	}
 
 	return result, cobra.ShellCompDirectiveNoFileComp
-}
-
-func getAvailableProfiles(p *project.Project, name string) []string {
-	allProfileNames := p.AllServices().GetProfiles()
-	sort.Strings(allProfileNames)
-
-	var values []string
-	for _, profileName := range allProfileNames {
-		if strings.HasPrefix(profileName, name) {
-			values = append(values, profileName)
-		}
-	}
-
-	return values
 }
 
 func runBuild(ctx context.Context, p *project.Project) error {
