@@ -1,7 +1,7 @@
 x-devbox-sources:
   service-1:
     url: "SOURCE_1_REPO"
-    branch: master
+    branch: main
 services:
   web:
     image: nginx:alpine
