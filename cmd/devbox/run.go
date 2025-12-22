@@ -114,7 +114,7 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 	return nil
 }
 
-func isRunning(ctx context.Context, a api.Service, p *project.Project) (bool, error) {
+func isRunning(ctx context.Context, a api.Compose, p *project.Project) (bool, error) {
 	opts := project.PsOptions{
 		Project: p.Project,
 	}

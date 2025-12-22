@@ -131,7 +131,7 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 	return nil
 }
 
-func getRunningServices(ctx context.Context, a api.Service, p *project.Project, all bool, filter string) ([]string, error) {
+func getRunningServices(ctx context.Context, a api.Compose, p *project.Project, all bool, filter string) ([]string, error) {
 	opts := project.PsOptions{
 		Project: p.Project,
 		All:     all,
