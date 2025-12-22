@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -29,7 +30,6 @@ type Project struct {
 	CertConfig   CertConfig
 
 	LocalMounts map[string]string // some service's full mount path -> local path
-	HasHosts    bool
 
 	envFiles []string
 }
@@ -119,8 +119,7 @@ func (p *Project) WithSelectedServices(names []string, options ...types.Dependen
 
 func (p *Project) SaveState() error {
 	state := &stateFileStruct{
-		Mounts:   p.LocalMounts,
-		HasHosts: p.HasHosts,
+		Mounts: p.LocalMounts,
 	}
 
 	json, err := json.Marshal(state)
@@ -184,11 +183,9 @@ func loadState(p *Project) error {
 		return fmt.Errorf("failed to unmarshal state: %w", err)
 	}
 
-	if state.Mounts == nil {
-		return nil
+	if state.Mounts != nil {
+		p.LocalMounts = state.Mounts
 	}
-
-	p.LocalMounts = state.Mounts
 
 	return nil
 }
@@ -232,9 +229,17 @@ func applyHosts(p *Project) error {
 			}
 		}
 
-		entities := []string{}
-		for ip, hosts := range ipToHosts {
-			entities = append(entities, fmt.Sprintf("%s %s", ip, strings.Join(hosts, " ")))
+		// Sort IPs to ensure deterministic output order
+		ips := make([]string, 0, len(ipToHosts))
+		for ip := range ipToHosts {
+			ips = append(ips, ip)
+		}
+		slices.Sort(ips)
+
+		entities := make([]string, 0, len(ips))
+		for _, ip := range ips {
+			slices.Sort(ipToHosts[ip])
+			entities = append(entities, fmt.Sprintf("%s %s", ip, strings.Join(ipToHosts[ip], " ")))
 		}
 
 		p.HostEntities = entities

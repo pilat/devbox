@@ -184,32 +184,29 @@ func runCertUpdate(p *project.Project, firstTime bool) error {
 }
 
 func runHostsUpdate(p *project.Project, firstTime, cleanup bool) error {
-	if len(p.HostEntities) == 0 && !p.HasHosts {
-		return nil // project has no hosts and there were no hosts before
-	}
-
 	entities := p.HostEntities
 	if cleanup {
 		entities = []string{}
 	}
 
-	fmt.Println("[*] Update hosts file...")
-
-	err := hosts.Save(p.Name, entities)
+	changed, err := hosts.Save(p.Name, entities)
 	if err != nil && firstTime {
+		// Permission denied - retry with sudo
 		args := []string{"--", "devbox", "update-hosts", "--name", p.Name}
 		if cleanup {
 			args = append(args, "--cleanup")
 		}
 
+		fmt.Println("[*] Update hosts file...")
 		cmd := exec.Command("sudo", args...)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to save hosts file: %w", err)
 		}
 	} else if err != nil {
 		return fmt.Errorf("failed to save hosts file: %w", err)
+	} else if changed {
+		fmt.Println("[*] Updated hosts file")
 	}
 
-	p.HasHosts = len(entities) == 0
-	return p.SaveState()
+	return nil
 }
