@@ -92,6 +92,7 @@ func New(ctx context.Context, projectName string, profiles []string) (*Project, 
 		applyHosts,
 		applyCert,
 		setupGracePeriod,
+		applyDefaultLogging,
 		applyLabels,
 		mountSourceVolumes,
 	}
@@ -282,6 +283,24 @@ func setupGracePeriod(p *Project) error {
 		}
 
 		p.Services[name] = s
+	}
+
+	return nil
+}
+
+func applyDefaultLogging(p *Project) error {
+	for name, svc := range p.Services {
+		if svc.Logging != nil {
+			continue
+		}
+
+		svc.Logging = &types.LoggingConfig{
+			Options: map[string]string{
+				"max-size": "10m",
+				"max-file": "1",
+			},
+		}
+		p.Services[name] = svc
 	}
 
 	return nil

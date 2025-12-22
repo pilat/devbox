@@ -35,3 +35,6 @@ Automatically generates and manages SSL certificates for local development.
 
 ### Automatic Host File Updates
 Manages your `/etc/hosts` file automatically — no manual editing required.
+
+### Sensible Defaults
+Applies reasonable defaults to prevent common issues. For example, container logs are automatically limited to 10MB per service to prevent disk space exhaustion.

@@ -26,3 +26,18 @@ devbox logs service1 service2
 # View logs from a specific project
 devbox --name project-name logs
 ```
+
+## Log Size Limits
+
+DevBox automatically limits container logs to **10MB per service** to prevent disk space exhaustion. This is applied to all services that don't have explicit logging configuration.
+
+To override for a specific service, add a `logging` section in your `docker-compose.yaml`:
+
+```yaml
+services:
+  verbose-service:
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+```
