@@ -4,30 +4,31 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
 type svc struct {
 	targetPath string
+	runner     CommandRunner
 }
 
 func New(targetFolder string) *svc {
 	return &svc{
 		targetPath: targetFolder,
+		runner:     &defaultRunner{},
 	}
 }
 
 func (s *svc) Clone(ctx context.Context, url, branch string) error {
-	cmds := []string{"clone", url, s.targetPath}
+	args := []string{"clone", url, s.targetPath}
 	if branch != "" {
-		cmds = append(cmds, "--branch", branch)
+		args = append(args, "--branch", branch)
 	}
 
-	out, err := s.exec(ctx, "git", cmds...)
+	out, err := s.runner.RunWithTTY(ctx, "git", args...)
 	if err != nil {
-		return fmt.Errorf("failed to clone: %s %w", out, err)
+		return fmt.Errorf("failed to clone: %s\n%s\n%w", out, gitConfigHint(url), err)
 	}
 
 	return nil
@@ -52,7 +53,7 @@ func (s *svc) SetLocalExclude(patterns []string) error {
 }
 
 func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []string) error {
-	// if there is no `.git` directory we should not to try to reset because it will try to lock a repo above
+	// if there is no `.git` directory we should not try to reset because it will try to lock a repo above
 	if _, err := os.Stat(filepath.Join(s.targetPath, ".git")); os.IsNotExist(err) {
 		_ = os.RemoveAll(s.targetPath)
 	}
@@ -68,30 +69,30 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 		}
 	} else {
 		_ = os.MkdirAll(s.targetPath, os.ModePerm)
-		out, err := s.exec(ctx, "git", "clone", "--no-checkout", "--depth", "1", url, s.targetPath)
+		out, err := s.runner.RunWithTTY(ctx, "git", "clone", "--no-checkout", "--depth", "1", url, s.targetPath)
 		if err != nil {
-			return fmt.Errorf("failed to clone: %s %w", out, err)
+			return fmt.Errorf("failed to clone: %s\n%s\n%w", out, gitConfigHint(url), err)
 		}
 	}
 
 	if len(sparseCheckout) > 0 {
-		out, err := s.exec(ctx, "git", "-C", s.targetPath, "sparse-checkout", "init", "--cone")
+		out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "sparse-checkout", "init", "--cone")
 		if err != nil {
 			return fmt.Errorf("failed to init sparse-checkout: %s %w", out, err)
 		}
 
-		out, err = s.exec(ctx, "git", append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
+		out, err = s.runner.Run(ctx, "git", append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
 		if err != nil {
 			return fmt.Errorf("failed to set sparse-checkout: %s %w", out, err)
 		}
 	} else {
-		out, err := s.exec(ctx, "git", "-C", s.targetPath, "sparse-checkout", "disable")
+		out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "sparse-checkout", "disable")
 		if err != nil {
 			return fmt.Errorf("failed to disable sparse-checkout: %s %w", out, err)
 		}
 	}
 
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "checkout", branch)
+	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "checkout", branch)
 	if err != nil {
 		return fmt.Errorf("failed to checkout: %s %w", out, err)
 	}
@@ -104,7 +105,7 @@ func (s *svc) Pull(ctx context.Context) error {
 		return fmt.Errorf("failed to reset repo: %w", err)
 	}
 
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "pull", "--rebase")
+	out, err := s.runner.RunWithTTY(ctx, "git", "-C", s.targetPath, "pull", "--rebase")
 	if err != nil {
 		return fmt.Errorf("failed to pull: %s %w", out, err)
 	}
@@ -113,7 +114,7 @@ func (s *svc) Pull(ctx context.Context) error {
 }
 
 func (s *svc) GetInfo(ctx context.Context) (*CommitInfo, error) {
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s")
+	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get commit info: %s", out)
 	}
@@ -132,7 +133,7 @@ func (s *svc) GetInfo(ctx context.Context) (*CommitInfo, error) {
 }
 
 func (s *svc) GetRemote(ctx context.Context) (string, error) {
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "config", "--get", "remote.origin.url")
+	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "config", "--get", "remote.origin.url")
 	if err != nil {
 		return "", fmt.Errorf("failed to get remote: %s %w", out, err)
 	}
@@ -141,7 +142,7 @@ func (s *svc) GetRemote(ctx context.Context) (string, error) {
 }
 
 func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "rev-parse", "--show-toplevel")
+	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "rev-parse", "--show-toplevel")
 	if err != nil {
 		return "", fmt.Errorf("failed to get top level: %s %w", out, err)
 	}
@@ -152,12 +153,12 @@ func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
 func (s *svc) reset(ctx context.Context) error {
 	_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
 
-	out, err := s.exec(ctx, "git", "-C", s.targetPath, "reset", "--hard")
+	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "reset", "--hard")
 	if err != nil {
 		return fmt.Errorf("failed to reset: %s %w", out, err)
 	}
 
-	out, err = s.exec(ctx, "git", "-C", s.targetPath, "clean", "-fd")
+	out, err = s.runner.Run(ctx, "git", "-C", s.targetPath, "clean", "-fd")
 	if err != nil {
 		return fmt.Errorf("failed to clean: %s %w", out, err)
 	}
@@ -165,14 +166,25 @@ func (s *svc) reset(ctx context.Context) error {
 	return nil
 }
 
-func (s *svc) exec(ctx context.Context, name string, args ...string) (string, error) {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return string(out), err
+// gitConfigHint returns a helpful message suggesting git URL rewrite configuration.
+func gitConfigHint(u string) string {
+	if strings.HasPrefix(u, "https://") || strings.HasPrefix(u, "http://") {
+		host := strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://")
+		if idx := strings.Index(host, "/"); idx > 0 {
+			host = host[:idx]
+		}
+		return fmt.Sprintf(`Tip: If you use SSH keys instead of HTTPS, configure git:
+  git config --global url."git@%s:".insteadOf "https://%s/"`, host, host)
 	}
 
-	return string(out), nil
+	if strings.HasPrefix(u, "git@") {
+		host := strings.TrimPrefix(u, "git@")
+		if idx := strings.Index(host, ":"); idx > 0 {
+			host = host[:idx]
+		}
+		return fmt.Sprintf(`Tip: If you use HTTPS tokens instead of SSH, configure git:
+  git config --global url."https://%s/".insteadOf "git@%s:"`, host, host)
+	}
+
+	return ""
 }

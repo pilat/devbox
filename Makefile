@@ -1,6 +1,9 @@
-.PHONY: all tidy vendor lint test test-e2e
+.PHONY: all tidy vendor mocks lint test test-e2e
 
 all: tidy vendor lint test
+
+mocks:
+	mockery
 
 tidy:
 	go mod tidy

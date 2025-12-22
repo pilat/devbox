@@ -117,32 +117,68 @@ func runSourcesUpdate(ctx context.Context, p *project.Project) error {
 		for name := range p.Sources {
 			cw.Event(progress.Event{
 				ID:         "Source " + name,
-				StatusText: "Syncing",
+				StatusText: "Pending",
 			})
 		}
+
+		// Create a cancellable context for fail-fast behavior
+		ctx, cancelSync := context.WithCancel(ctx)
+		defer cancelSync()
+
+		// Semaphore to limit concurrent goroutines to 4
+		const maxConcurrency = 4
+		sem := make(chan struct{}, maxConcurrency)
 
 		var errCh = make(chan error, len(p.Sources))
 		for name, src := range p.Sources {
 			go func(name string, src project.SourceConfig) {
-				repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
-
-				git := git.New(repoDir)
-				err := git.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
+				// Acquire semaphore
+				select {
+				case sem <- struct{}{}:
+					defer func() { <-sem }()
+				case <-ctx.Done():
+					errCh <- ctx.Err()
+					return
+				}
 
 				cw.Event(progress.Event{
 					ID:         "Source " + name,
-					StatusText: "Synced",
-					Status:     progress.Done,
+					StatusText: "Syncing",
 				})
+
+				repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
+
+				g := git.New(repoDir)
+				err := g.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
+
+				if err != nil {
+					cw.Event(progress.Event{
+						ID:         "Source " + name,
+						StatusText: "Failed",
+						Status:     progress.Error,
+					})
+					cancelSync() // Fail-fast: cancel all other syncs
+				} else {
+					cw.Event(progress.Event{
+						ID:         "Source " + name,
+						StatusText: "Synced",
+						Status:     progress.Done,
+					})
+				}
 
 				errCh <- err
 			}(name, src)
 		}
 
+		var firstErr error
 		for i := 0; i < len(p.Sources); i++ {
-			if err := <-errCh; err != nil {
-				return fmt.Errorf("failed to sync source: %w", err)
+			if err := <-errCh; err != nil && firstErr == nil {
+				firstErr = err
 			}
+		}
+
+		if firstErr != nil {
+			return fmt.Errorf("failed to sync source: %w", firstErr)
 		}
 
 		return nil

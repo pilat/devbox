@@ -1,0 +1,13 @@
+keeptree: False
+with-expecter: True
+inpackage: True
+resolve-type-alias: False
+issue-845-fix: True
+dir: "{{.InterfaceDirRelative}}"
+outpkg: "{{.PackageName}}"
+filename: "mock_{{.InterfaceName}}.go"
+
+packages:
+  github.com/pilat/devbox/internal/git:
+    interfaces:
+      CommandRunner:
