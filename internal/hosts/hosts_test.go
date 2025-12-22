@@ -49,8 +49,7 @@ func TestSave(t *testing.T) {
 			err = os.WriteFile(tempFile.Name(), []byte(tc.initialContent), 0644)
 			assert.NoError(t, err)
 
-			err = save(tempFile.Name(), tc.projectName, tc.entries)
-
+			_, err = save(tempFile.Name(), tc.projectName, tc.entries)
 			assert.NoError(t, err)
 
 			content, err := os.ReadFile(tempFile.Name())

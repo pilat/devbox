@@ -14,23 +14,25 @@ const (
 	endMarkerTemplate   = "# END: Devbox: '%s' project"
 )
 
-func Save(projectName string, entries []string) error {
+// Save updates the hosts file with the given entries. Returns (changed, error).
+// If no changes were needed, changed is false and no write occurs.
+func Save(projectName string, entries []string) (bool, error) {
 	return save(defaultHostFile, projectName, entries)
 }
 
-func save(hostFile, projectName string, entries []string) error {
+func save(hostFile, projectName string, entries []string) (bool, error) {
 	markerBegin := fmt.Sprintf(beginMarkerTemplate, projectName)
 	markerEnd := fmt.Sprintf(endMarkerTemplate, projectName)
 
 	fileInfo, err := os.Stat(hostFile)
 	if err != nil {
-		return fmt.Errorf("failed to stat hosts file: %w", err)
+		return false, fmt.Errorf("failed to stat hosts file: %w", err)
 	}
 	fileMode := fileInfo.Mode()
 
 	oldContent, err := os.ReadFile(hostFile)
 	if err != nil {
-		return fmt.Errorf("failed to read hosts file: %w", err)
+		return false, fmt.Errorf("failed to read hosts file: %w", err)
 	}
 
 	var newContent strings.Builder
@@ -68,10 +70,10 @@ func save(hostFile, projectName string, entries []string) error {
 	}
 
 	if lookupForEnd {
-		return fmt.Errorf("unexpected end of file")
+		return false, fmt.Errorf("unexpected end of file")
 	}
 
-	if !replaced {
+	if !replaced && len(entries) > 0 {
 		newContent.WriteString(markerBegin + "\n")
 		for _, entry := range entries {
 			newContent.WriteString(entry + "\n")
@@ -80,8 +82,12 @@ func save(hostFile, projectName string, entries []string) error {
 	}
 
 	if newContent.String() == string(oldContent) {
-		return nil
+		return false, nil
 	}
 
-	return os.WriteFile(hostFile, []byte(newContent.String()), fileMode)
+	err = os.WriteFile(hostFile, []byte(newContent.String()), fileMode)
+	if err != nil {
+		return false, fmt.Errorf("failed to write hosts file: %w", err)
+	}
+	return true, nil
 }
