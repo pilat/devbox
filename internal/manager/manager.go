@@ -81,7 +81,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 		return nil, fmt.Errorf("failed to get remote url: %w", err)
 	}
 
-	remoteURL = normalizeRemoteURL(remoteURL)
+	remoteURL = git.NormalizeURL(remoteURL)
 
 	toplevelDir, err := g.GetTopLevel(context.TODO())
 	if err != nil {
@@ -104,7 +104,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 				continue
 			}
 
-			remoteURLCurrent = normalizeRemoteURL(remoteURLCurrent)
+			remoteURLCurrent = git.NormalizeURL(remoteURLCurrent)
 			if remoteURL != remoteURLCurrent {
 				continue
 			}
@@ -152,7 +152,7 @@ func AutodetectProject(name string) (*project.Project, error) {
 			continue
 		}
 
-		remoteURLCurrent = normalizeRemoteURL(remoteURLCurrent)
+		remoteURLCurrent = git.NormalizeURL(remoteURLCurrent)
 
 		if remoteURL != remoteURLCurrent {
 			continue
@@ -227,7 +227,7 @@ func AutodetectSource(project *project.Project, sourceNameSel string, purpose Au
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get remote url: %w", err)
 	}
-	remoteURL = normalizeRemoteURL(remoteURL)
+	remoteURL = git.NormalizeURL(remoteURL)
 
 	// Get the relative path between the Git top-level directory and the current directory
 	relativePath, err := filepath.Rel(toplevelDir, curDir)
@@ -262,7 +262,7 @@ func AutodetectSource(project *project.Project, sourceNameSel string, purpose Au
 		if err != nil {
 			continue
 		}
-		sourceRemoteURL = normalizeRemoteURL(sourceRemoteURL)
+		sourceRemoteURL = git.NormalizeURL(sourceRemoteURL)
 
 		if remoteURL != sourceRemoteURL {
 			continue
@@ -445,13 +445,4 @@ func isProjectExists(path string) bool {
 
 func validateName(name string) bool {
 	return regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(name)
-}
-
-func normalizeRemoteURL(s string) string { // TODO: improve it to handle cases with auth
-	s = strings.ToLower(s)
-	s = strings.TrimPrefix(s, "https://")
-	s = strings.TrimPrefix(s, "git@")
-	s = strings.ReplaceAll(s, ":", "/")
-	s = strings.TrimSuffix(s, ".git")
-	return s
 }
