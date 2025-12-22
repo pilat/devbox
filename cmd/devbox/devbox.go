@@ -19,7 +19,7 @@ var root = &cobra.Command{}
 var projectName string
 
 var dockerClient client.APIClient
-var apiService api.Service
+var apiService api.Compose
 
 func main() {
 	for _, fn := range []func() error{

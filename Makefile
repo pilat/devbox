@@ -18,4 +18,4 @@ test:
 	go test -race ./internal/...
 
 test-e2e:
-	go test -v ./tests/e2e/ -timeout 10m
+	go test -v ./tests/e2e/ -timeout 10m -count=1
