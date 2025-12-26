@@ -32,7 +32,7 @@ func init() {
 
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to autodetect project: %w", err)
 			}
 
 			if !updated {

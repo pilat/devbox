@@ -25,7 +25,7 @@ type svc struct {
 	runner     CommandRunner
 }
 
-func New(targetFolder string) *svc {
+func New(targetFolder string) Service {
 	return &svc{
 		targetPath: targetFolder,
 		runner:     &defaultRunner{},

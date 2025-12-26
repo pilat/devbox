@@ -31,7 +31,7 @@ func init() {
 			}
 
 			if err := runInit(ctx, projectName, gitURL, branch); err != nil {
-				return fmt.Errorf("failed to list projects: %w", err)
+				return fmt.Errorf("failed to initialize project: %w", err)
 			}
 
 			return nil

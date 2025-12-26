@@ -204,7 +204,7 @@ func (m *Manager) AutodetectSource(ctx context.Context, proj *project.Project, s
 
 // detectExplicitSource handles the case when a source name is explicitly provided.
 func (m *Manager) detectExplicitSource(proj *project.Project, sourceNameSel string, purpose AutodetectSourceType) (*SourceDetectionResult, error) {
-	if !strings.HasPrefix(sourceNameSel, "./sources/") {
+	if !strings.HasPrefix(sourceNameSel, "./"+app.SourcesDir+"/") {
 		return nil, fmt.Errorf("source '%s' not found", sourceNameSel)
 	}
 
@@ -579,6 +579,7 @@ func (m *Manager) GetLocalMountCandidates(proj *project.Project, filter string) 
 		}
 	}
 
+	sort.Strings(filtered)
 	return filtered
 }
 
@@ -592,6 +593,7 @@ func (m *Manager) GetLocalMounts(proj *project.Project, filter string) []string 
 		}
 	}
 
+	sort.Strings(results)
 	return results
 }
 

@@ -41,6 +41,7 @@ func (e osDirEntry) Name() string      { return e.entry.Name() }
 func (e osDirEntry) IsDir() bool       { return e.entry.IsDir() }
 func (e osDirEntry) Type() fs.FileMode { return e.entry.Type() }
 func (e osDirEntry) Info() (FileInfo, error) {
+	// os.FileInfo satisfies our FileInfo interface via structural typing
 	return e.entry.Info()
 }
 

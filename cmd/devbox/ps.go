@@ -56,10 +56,12 @@ func runPs(ctx context.Context, p *project.Project) error {
 			containers, err := apiService.Ps(ctx, p.Name, opts)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to list services: %w", err)
+				return
 			}
 
 			if len(containers) == 0 {
 				errCh <- nil
+				return
 			}
 
 			for _, container := range containers {

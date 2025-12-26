@@ -47,7 +47,7 @@ func init() {
 			}
 
 			if err := runUmount(ctx, p, result.Sources); err != nil {
-				return fmt.Errorf("failed to mount source code: %w", err)
+				return fmt.Errorf("failed to unmount source code: %w", err)
 			}
 
 			if err := runRestart(ctx, p, result.AffectedServices, false); err != nil {
@@ -79,7 +79,7 @@ func init() {
 func runUmount(ctx context.Context, p *project.Project, sources []string) error {
 	err := p.Umount(ctx, sources)
 	if err != nil {
-		return fmt.Errorf("failed to mount source code: %w", err)
+		return fmt.Errorf("failed to unmount source code: %w", err)
 	}
 
 	return nil
