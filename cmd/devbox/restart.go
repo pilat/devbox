@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +20,7 @@ func init() {
 		Args:              cobra.MinimumNArgs(0),
 		ValidArgsFunction: validArgsWrapper(suggestRunningServices),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}
@@ -57,7 +56,7 @@ func init() {
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
 	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := manager.AutodetectProject(projectName)
+		p, err := mgr.AutodetectProject(context.Background(), projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -69,7 +68,7 @@ func init() {
 }
 
 func suggestRunningServices(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	p, err := manager.AutodetectProject(projectName)
+	p, err := mgr.AutodetectProject(ctx, projectName)
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}

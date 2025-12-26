@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/docker/compose/v2/pkg/api"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +18,7 @@ func init() {
 		Long:  "You can pass additional arguments to the scenario",
 		Args:  cobra.ExactArgs(1),
 		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
 			}
@@ -32,7 +31,7 @@ func init() {
 			return p.GetScenarios(toComplete), cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}

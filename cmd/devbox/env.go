@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +26,7 @@ func init() {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			project, err := manager.AutodetectProject(projectName)
+			project, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return fmt.Errorf("failed to detect project: %w", err)
 			}

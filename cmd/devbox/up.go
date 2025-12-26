@@ -10,7 +10,6 @@ import (
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/cert"
 	"github.com/pilat/devbox/internal/hosts"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -23,7 +22,7 @@ func init() {
 		Short: "Start devbox project",
 		Long:  "That command will start devbox project",
 		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
 			}
@@ -36,7 +35,7 @@ func init() {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}
@@ -78,7 +77,7 @@ func init() {
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
 	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := manager.AutodetectProject(projectName)
+		p, err := mgr.AutodetectProject(context.Background(), projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}

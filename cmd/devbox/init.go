@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +30,7 @@ func init() {
 				projectName = guessName(gitURL)
 			}
 
-			if err := runInit(projectName, gitURL, branch); err != nil {
+			if err := runInit(ctx, projectName, gitURL, branch); err != nil {
 				return fmt.Errorf("failed to list projects: %w", err)
 			}
 
@@ -45,9 +44,9 @@ func init() {
 	root.AddCommand(cmd)
 }
 
-func runInit(name, gitURL, branch string) error {
+func runInit(ctx context.Context, name, gitURL, branch string) error {
 	fmt.Println("[*] Initializing project...")
-	if err := manager.Init(name, gitURL, branch); err != nil {
+	if err := mgr.Init(ctx, name, gitURL, branch); err != nil {
 		return fmt.Errorf("failed to init project: %w", err)
 	}
 

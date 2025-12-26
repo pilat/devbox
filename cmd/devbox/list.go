@@ -5,8 +5,6 @@ import (
 	"fmt"
 
 	"github.com/pilat/devbox/internal/git"
-	"github.com/pilat/devbox/internal/manager"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/pilat/devbox/internal/table"
 	"github.com/spf13/cobra"
 )
@@ -35,16 +33,16 @@ func runList(ctx context.Context, filter string) error {
 	fmt.Println("")
 	fmt.Println(" Projects:")
 
-	projects := manager.ListProjects(filter)
+	projectNames := mgr.List(filter)
 
 	t := table.New("Name", "Message", "Author", "Date")
-	for _, projectName := range projects {
-		app, err := project.New(ctx, projectName, []string{"*"})
+	for _, projectName := range projectNames {
+		proj, err := mgr.Load(ctx, projectName, []string{"*"})
 		if err != nil {
 			return fmt.Errorf("failed to get project: %w", err)
 		}
 
-		g := git.New(app.WorkingDir)
+		g := git.New(proj.WorkingDir)
 		info, err := g.GetInfo(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get git info: %w", err)

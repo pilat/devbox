@@ -10,7 +10,6 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +29,7 @@ func init() {
 			return suggestRunningServices(ctx, cmd, args, toComplete)
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}

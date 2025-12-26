@@ -11,6 +11,10 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func newSvcWithRunner(targetFolder string, runner CommandRunner) *svc {
+	return &svc{targetPath: targetFolder, runner: runner}
+}
+
 // ============================================================================
 // Clone tests
 // ============================================================================
@@ -79,8 +83,7 @@ func TestClone(t *testing.T) {
 				RunWithTTY(mock.Anything, "git", args...).
 				Return(tt.output, tt.err)
 
-			svc := New("/tmp/test")
-			svc.runner = runner
+			svc := newSvcWithRunner("/tmp/test", runner)
 			err := svc.Clone(context.Background(), tt.url, tt.branch)
 
 			if (err != nil) != tt.wantErr {
@@ -150,8 +153,7 @@ func TestPull(t *testing.T) {
 			runner := NewMockCommandRunner(t)
 			tt.setupMock(runner)
 
-			svc := New("/tmp/test")
-			svc.runner = runner
+			svc := newSvcWithRunner("/tmp/test", runner)
 			err := svc.Pull(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -211,8 +213,7 @@ func TestGetInfo(t *testing.T) {
 				Run(mock.Anything, "git", "-C", "/tmp/test", "log", "-1", "--pretty=format:%H%n%aN%n%ad%n%s").
 				Return(tt.output, tt.err)
 
-			svc := New("/tmp/test")
-			svc.runner = runner
+			svc := newSvcWithRunner("/tmp/test", runner)
 			info, err := svc.GetInfo(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -275,8 +276,7 @@ func TestGetRemote(t *testing.T) {
 				Run(mock.Anything, "git", "-C", "/tmp/test", "config", "--get", "remote.origin.url").
 				Return(tt.output, tt.err)
 
-			svc := New("/tmp/test")
-			svc.runner = runner
+			svc := newSvcWithRunner("/tmp/test", runner)
 			got, err := svc.GetRemote(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -324,8 +324,7 @@ func TestGetTopLevel(t *testing.T) {
 				Run(mock.Anything, "git", "-C", "/tmp/test", "rev-parse", "--show-toplevel").
 				Return(tt.output, tt.err)
 
-			svc := New("/tmp/test")
-			svc.runner = runner
+			svc := newSvcWithRunner("/tmp/test", runner)
 			got, err := svc.GetTopLevel(context.Background())
 
 			if (err != nil) != tt.wantErr {
@@ -525,8 +524,7 @@ func TestSync(t *testing.T) {
 			runner := NewMockCommandRunner(t)
 			tt.setupMock(runner, targetPath)
 
-			svc := New(targetPath)
-			svc.runner = runner
+			svc := newSvcWithRunner(targetPath, runner)
 			err := svc.Sync(context.Background(), "https://github.com/org/repo.git", "main", tt.sparseCheckout)
 
 			if (err != nil) != tt.wantErr {
