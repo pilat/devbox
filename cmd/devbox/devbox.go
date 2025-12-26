@@ -20,6 +20,7 @@ var projectName string
 
 var dockerClient client.APIClient
 var apiService api.Compose
+var mgr *manager.Manager
 
 func main() {
 	for _, fn := range []func() error{
@@ -39,7 +40,8 @@ func initCobra() error {
 	root.PersistentFlags().StringVarP(&projectName, "name", "n", "", "Project name")
 
 	_ = root.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return manager.ListProjects(toComplete), cobra.ShellCompDirectiveNoFileComp
+		projects, _ := mgr.List(toComplete)
+		return projects, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	return root.Execute()
@@ -60,6 +62,8 @@ func initDocker() error {
 
 	apiService = compose.NewComposeService(dockerCLI)
 
+	mgr = manager.New()
+
 	return nil
 }
 
@@ -67,7 +71,7 @@ func validArgsWrapper(f func(ctx context.Context, cmd *cobra.Command, args []str
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
 
-		_, err := manager.AutodetectProject(projectName)
+		_, err := mgr.AutodetectProject(ctx, projectName)
 
 		if err != nil && !cmd.Flags().Changed("name") { // not auto-detected and name is not even mentioned
 			return []string{"--name"}, cobra.ShellCompDirectiveNoFileComp

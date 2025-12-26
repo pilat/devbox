@@ -19,13 +19,13 @@ func init() {
 		Long:  "That command will mount source code to the project",
 		Args:  cobra.MinimumNArgs(0),
 		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
 			}
 
 			if sourceName == "" {
-				if sources, _, _ := manager.AutodetectSource(p, "", manager.AutodetectSourceForMount); len(sources) > 0 {
+				if result, _ := mgr.AutodetectSource(ctx, p, "", manager.AutodetectSourceForMount); result != nil && len(result.Sources) > 0 {
 					return []string{}, cobra.ShellCompDirectiveNoFileComp
 				}
 			}
@@ -34,26 +34,29 @@ func init() {
 				return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
 			}
 
-			// We are not suggesting --path since we assume that user wants to mount the current directory
-
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}
 
-			sources, affectedServices, err := manager.AutodetectSource(p, sourceName, manager.AutodetectSourceForMount)
+			result, err := mgr.AutodetectSource(ctx, p, sourceName, manager.AutodetectSourceForMount)
 			if err != nil {
 				return fmt.Errorf("failed to autodetect source: %w", err)
 			}
 
-			if err := runMount(ctx, p, sources, targetPath); err != nil {
+			mountPath := targetPath
+			if mountPath == "" && result.LocalPath != "" {
+				mountPath = result.LocalPath
+			}
+
+			if err := runMount(ctx, p, result.Sources, mountPath); err != nil {
 				return fmt.Errorf("failed to mount source code: %w", err)
 			}
 
-			if err := runRestart(ctx, p, affectedServices, false); err != nil {
+			if err := runRestart(ctx, p, result.AffectedServices, false); err != nil {
 				return fmt.Errorf("failed to restart services: %w", err)
 			}
 
@@ -69,12 +72,12 @@ func init() {
 	cmd.PersistentFlags().StringVarP(&targetPath, "path", "p", "", "Path to mount")
 
 	_ = cmd.RegisterFlagCompletionFunc("source", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := manager.AutodetectProject(projectName)
+		p, err := mgr.AutodetectProject(context.Background(), projectName)
 		if err != nil {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}
 
-		return manager.GetLocalMountCandidates(p, toComplete), cobra.ShellCompDirectiveNoFileComp
+		return mgr.GetLocalMountCandidates(p, toComplete), cobra.ShellCompDirectiveNoFileComp
 	})
 
 	root.AddCommand(cmd)

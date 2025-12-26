@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/pilat/devbox/internal/table"
 	"github.com/spf13/cobra"
@@ -20,7 +19,7 @@ func init() {
 			return []string{}, cobra.ShellCompDirectiveNoFileComp
 		}),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
 				return err
 			}
@@ -57,10 +56,12 @@ func runPs(ctx context.Context, p *project.Project) error {
 			containers, err := apiService.Ps(ctx, p.Name, opts)
 			if err != nil {
 				errCh <- fmt.Errorf("failed to list services: %w", err)
+				return
 			}
 
 			if len(containers) == 0 {
 				errCh <- nil
+				return
 			}
 
 			for _, container := range containers {

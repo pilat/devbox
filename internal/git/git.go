@@ -8,12 +8,24 @@ import (
 	"strings"
 )
 
+type Service interface {
+	Clone(ctx context.Context, url, branch string) error
+	SetLocalExclude(patterns []string) error
+	Sync(ctx context.Context, url, branch string, sparseCheckout []string) error
+	Pull(ctx context.Context) error
+	GetInfo(ctx context.Context) (*CommitInfo, error)
+	GetRemote(ctx context.Context) (string, error)
+	GetTopLevel(ctx context.Context) (string, error)
+}
+
+var _ Service = (*svc)(nil)
+
 type svc struct {
 	targetPath string
 	runner     CommandRunner
 }
 
-func New(targetFolder string) *svc {
+func New(targetFolder string) Service {
 	return &svc{
 		targetPath: targetFolder,
 		runner:     &defaultRunner{},

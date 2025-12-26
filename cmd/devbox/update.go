@@ -12,7 +12,6 @@ import (
 	"github.com/docker/compose/v2/pkg/progress"
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -31,9 +30,9 @@ func init() {
 			// as autodetection may fail if the project manifest is damaged.
 			updated := runEmergencyProjectUpdate(ctx, projectName)
 
-			p, err := manager.AutodetectProject(projectName)
+			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to autodetect project: %w", err)
 			}
 
 			if !updated {

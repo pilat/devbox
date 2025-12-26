@@ -11,3 +11,9 @@ packages:
   github.com/pilat/devbox/internal/git:
     interfaces:
       CommandRunner:
+      Service:
+  github.com/pilat/devbox/internal/pkg/fs:
+    interfaces:
+      FileSystem:
+      FileInfo:
+      DirEntry:
