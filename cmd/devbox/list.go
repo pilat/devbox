@@ -33,7 +33,10 @@ func runList(ctx context.Context, filter string) error {
 	fmt.Println("")
 	fmt.Println(" Projects:")
 
-	projectNames := mgr.List(filter)
+	projectNames, err := mgr.List(filter)
+	if err != nil {
+		return fmt.Errorf("failed to list projects: %w", err)
+	}
 
 	t := table.New("Name", "Message", "Author", "Date")
 	for _, projectName := range projectNames {

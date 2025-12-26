@@ -35,7 +35,7 @@ type gitServiceFactory func(path string) git.Service
 type Manager struct {
 	gitFactory gitServiceFactory
 	fs         fs.FileSystem
-	listFn     func(filter string) []string
+	listFn     func(filter string) ([]string, error)
 	loadFn     func(ctx context.Context, name string, profiles []string) (*project.Project, error)
 }
 
@@ -113,7 +113,10 @@ func (m *Manager) AutodetectProject(ctx context.Context, name string) (*project.
 
 // loadAllProjects loads all available projects.
 func (m *Manager) loadAllProjects(ctx context.Context) ([]*project.Project, error) {
-	projectNames := m.listFn("")
+	projectNames, err := m.listFn("")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list projects: %w", err)
+	}
 	projects := make([]*project.Project, 0, len(projectNames))
 
 	for _, projectName := range projectNames {
@@ -444,7 +447,7 @@ func pathStartsWith(path, prefix string) bool {
 	return true
 }
 
-func (m *Manager) List(filter string) []string {
+func (m *Manager) List(filter string) ([]string, error) {
 	return m.listFn(filter)
 }
 
@@ -452,10 +455,10 @@ func (m *Manager) Load(ctx context.Context, name string, profiles []string) (*pr
 	return m.loadFn(ctx, name, profiles)
 }
 
-func (m *Manager) list(filter string) []string {
+func (m *Manager) list(filter string) ([]string, error) {
 	folders, err := m.fs.ReadDir(app.AppDir)
 	if err != nil {
-		return []string{}
+		return nil, fmt.Errorf("failed to read app directory: %w", err)
 	}
 
 	results := make([]string, 0, len(folders))
@@ -472,7 +475,7 @@ func (m *Manager) list(filter string) []string {
 		results = append(results, name)
 	}
 
-	return results
+	return results, nil
 }
 
 func (m *Manager) load(ctx context.Context, name string, profiles []string) (*project.Project, error) {

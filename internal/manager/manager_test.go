@@ -352,8 +352,8 @@ func TestDetectByProjectRepo(t *testing.T) {
 
 func TestAutodetectProject_ByName(t *testing.T) {
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{testProjectName}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{testProjectName}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{Project: &types.Project{Name: testProjectName}}, nil
@@ -366,8 +366,8 @@ func TestAutodetectProject_ByName(t *testing.T) {
 
 func TestAutodetectProject_ByName_NotFound(t *testing.T) {
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{"other"}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{"other"}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{Project: &types.Project{Name: "other"}}, nil
@@ -383,8 +383,8 @@ func TestAutodetectProject_ByLocalMount(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("/home/user/backend", nil)
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{testProjectName}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{testProjectName}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{
@@ -411,8 +411,8 @@ func TestAutodetectProject_ByGitRemote(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("/home/user/code/backend", nil)
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{testProjectName}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{testProjectName}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{
@@ -446,8 +446,8 @@ func TestAutodetectProject_ByProjectRepo(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("/home/user/.devbox/myproject", nil)
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{testProjectName}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{testProjectName}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{
@@ -481,8 +481,8 @@ func TestAutodetectProject_Unknown(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("/some/random/dir", nil)
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{testProjectName}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{testProjectName}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return &project.Project{
@@ -505,8 +505,8 @@ func TestAutodetectProject_Ambiguous(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("/home/user/shared", nil)
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{"proj1", "proj2"}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{"proj1", "proj2"}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		if name == "proj1" {
@@ -671,8 +671,8 @@ func TestAutodetectProject_GetCwdError(t *testing.T) {
 	mockFS.EXPECT().Getwd().Return("", errors.New("permission denied"))
 
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{}, nil
 	}
 	m.fs = mockFS
 
@@ -683,8 +683,8 @@ func TestAutodetectProject_GetCwdError(t *testing.T) {
 
 func TestAutodetectProject_LoadError(t *testing.T) {
 	m := New()
-	m.listFn = func(filter string) []string {
-		return []string{"broken"}
+	m.listFn = func(filter string) ([]string, error) {
+		return []string{"broken"}, nil
 	}
 	m.loadFn = func(ctx context.Context, name string, profiles []string) (*project.Project, error) {
 		return nil, errors.New("invalid compose file")

@@ -40,7 +40,8 @@ func initCobra() error {
 	root.PersistentFlags().StringVarP(&projectName, "name", "n", "", "Project name")
 
 	_ = root.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return mgr.List(toComplete), cobra.ShellCompDirectiveNoFileComp
+		projects, _ := mgr.List(toComplete)
+		return projects, cobra.ShellCompDirectiveNoFileComp
 	})
 
 	return root.Execute()
