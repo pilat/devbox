@@ -9,9 +9,9 @@ replace (
 )
 
 require (
-	github.com/compose-spec/compose-go/v2 v2.9.0
+	github.com/compose-spec/compose-go/v2 v2.9.1
 	github.com/docker/cli v28.5.1+incompatible
-	github.com/docker/compose/v2 v2.40.2
+	github.com/docker/compose/v2 v2.40.3
 	github.com/docker/docker v28.5.1+incompatible
 	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/spf13/cobra v1.10.2
