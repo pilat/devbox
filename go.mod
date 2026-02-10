@@ -13,7 +13,7 @@ require (
 	github.com/docker/cli v28.5.1+incompatible
 	github.com/docker/compose/v2 v2.40.2
 	github.com/docker/docker v28.5.1+incompatible
-	github.com/jedib0t/go-pretty/v6 v6.7.7
+	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.49.0
