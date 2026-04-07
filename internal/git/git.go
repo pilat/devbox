@@ -76,7 +76,7 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 	}
 
 	if isExist {
-		if err := s.reset(ctx); err != nil {
+		if err := s.reset(ctx, true); err != nil {
 			return fmt.Errorf("failed to reset repo %s: %w", s.targetPath, err)
 		}
 	} else {
@@ -113,7 +113,7 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 }
 
 func (s *svc) Pull(ctx context.Context) error {
-	if err := s.reset(ctx); err != nil {
+	if err := s.reset(ctx, false); err != nil {
 		return fmt.Errorf("failed to reset repo: %w", err)
 	}
 
@@ -162,7 +162,7 @@ func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
-func (s *svc) reset(ctx context.Context) error {
+func (s *svc) reset(ctx context.Context, removeIgnored bool) error {
 	_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
 
 	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "reset", "--hard")
@@ -170,7 +170,12 @@ func (s *svc) reset(ctx context.Context) error {
 		return fmt.Errorf("failed to reset: %s %w", out, err)
 	}
 
-	out, err = s.runner.Run(ctx, "git", "-C", s.targetPath, "clean", "-fd")
+	cleanFlags := "-fd"
+	if removeIgnored {
+		cleanFlags = "-fdx"
+	}
+
+	out, err = s.runner.Run(ctx, "git", "-C", s.targetPath, "clean", cleanFlags)
 	if err != nil {
 		return fmt.Errorf("failed to clean: %s %w", out, err)
 	}
