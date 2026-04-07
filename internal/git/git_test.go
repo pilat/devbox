@@ -441,6 +441,7 @@ func TestSync(t *testing.T) {
 				m.EXPECT().RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "disable").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
+				// Pull's reset (removeIgnored=false)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fd").Return("", nil)
 				m.EXPECT().RunWithTTY(mock.Anything, "git", "-C", targetPath, "pull", "--rebase").Return("", nil)
@@ -457,6 +458,7 @@ func TestSync(t *testing.T) {
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "init", "--cone").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "set", "src", "docs").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
+				// Pull's reset (removeIgnored=false)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fd").Return("", nil)
 				m.EXPECT().RunWithTTY(mock.Anything, "git", "-C", targetPath, "pull", "--rebase").Return("", nil)
@@ -469,14 +471,14 @@ func TestSync(t *testing.T) {
 			setupGit:       true,
 			sparseCheckout: nil,
 			setupMock: func(m *MockCommandRunner, targetPath string) {
-				// reset() called first
+				// Sync's reset (removeIgnored=true)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil).Once()
-				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fd").Return("", nil).Once()
+				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fdx").Return("", nil).Once()
 				// sparse-checkout disable
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "disable").Return("", nil)
 				// checkout
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
-				// Pull calls reset() again
+				// Pull's reset (removeIgnored=false)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil).Once()
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fd").Return("", nil).Once()
 				m.EXPECT().RunWithTTY(mock.Anything, "git", "-C", targetPath, "pull", "--rebase").Return("", nil)
