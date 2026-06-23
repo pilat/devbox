@@ -3,6 +3,7 @@ package hosts
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -70,7 +71,7 @@ func save(hostFile, projectName string, entries []string) (bool, error) {
 	}
 
 	if lookupForEnd {
-		return false, fmt.Errorf("unexpected end of file")
+		return false, errors.New("unexpected end of file")
 	}
 
 	if !replaced && len(entries) > 0 {

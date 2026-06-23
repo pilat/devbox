@@ -47,7 +47,16 @@ func (c *cert) isSynced() bool {
 }
 
 func (c *cert) installCA() error {
-	cmd := exec.Command("security", "add-trusted-cert", "-d", "-r", "trustRoot", "-k", "/Library/Keychains/System.keychain", c.certFile)
+	cmd := exec.Command(
+		"security",
+		"add-trusted-cert",
+		"-d",
+		"-r",
+		"trustRoot",
+		"-k",
+		"/Library/Keychains/System.keychain",
+		c.certFile,
+	)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to install certificate: %w", err)
 	}

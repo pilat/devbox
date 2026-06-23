@@ -8,12 +8,18 @@ import (
 
 // URL normalization patterns
 var (
-	sshPattern           = regexp.MustCompile(`^git@([^:]+):(.+)/([^/]+?)(?:\.git)?$`)
-	sshExplicitPattern   = regexp.MustCompile(`^(?:ssh|git\+ssh)://(?:[^@]+@)?([^/:]+)(?::\d+)?/(.+)/([^/]+?)(?:\.git)?$`)
-	gitProtocolPattern   = regexp.MustCompile(`^git://([^/:]+)(?::\d+)?/(.+)/([^/]+?)(?:\.git)?$`)
-	azureSSHPattern      = regexp.MustCompile(`^git@ssh\.dev\.azure\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\.git)?$`)
-	azureHTTPSPattern    = regexp.MustCompile(`^https?://(?:[^@]+@)?dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+?)(?:\.git)?$`)
-	azureOldHTTPSPattern = regexp.MustCompile(`^https?://(?:[^@]+@)?([^.]+)\.visualstudio\.com/([^/]+)/_git/([^/]+?)(?:\.git)?$`)
+	sshPattern         = regexp.MustCompile(`^git@([^:]+):(.+)/([^/]+?)(?:\.git)?$`)
+	sshExplicitPattern = regexp.MustCompile(
+		`^(?:ssh|git\+ssh)://(?:[^@]+@)?([^/:]+)(?::\d+)?/(.+)/([^/]+?)(?:\.git)?$`,
+	)
+	gitProtocolPattern = regexp.MustCompile(`^git://([^/:]+)(?::\d+)?/(.+)/([^/]+?)(?:\.git)?$`)
+	azureSSHPattern    = regexp.MustCompile(`^git@ssh\.dev\.azure\.com:v3/([^/]+)/([^/]+)/([^/]+?)(?:\.git)?$`)
+	azureHTTPSPattern  = regexp.MustCompile(
+		`^https?://(?:[^@]+@)?dev\.azure\.com/([^/]+)/([^/]+)/_git/([^/]+?)(?:\.git)?$`,
+	)
+	azureOldHTTPSPattern = regexp.MustCompile(
+		`^https?://(?:[^@]+@)?([^.]+)\.visualstudio\.com/([^/]+)/_git/([^/]+?)(?:\.git)?$`,
+	)
 )
 
 // NormalizeURL parses and normalizes a git URL for comparison.
@@ -42,7 +48,7 @@ func NormalizeURL(rawURL string) string {
 		return strings.ToLower(matches[1] + "/" + matches[2] + "/" + matches[3])
 	}
 
-	// git:// protocol
+	// git protocol scheme
 	if matches := gitProtocolPattern.FindStringSubmatch(rawURL); matches != nil {
 		return strings.ToLower(matches[1] + "/" + matches[2] + "/" + matches[3])
 	}

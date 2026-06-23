@@ -36,7 +36,7 @@ func SetupCA(appDir string) error {
 	return c.setupCA()
 }
 
-func GeneratePair(appDir string, certFile, keyFile string, hosts []string) error {
+func GeneratePair(appDir, certFile, keyFile string, hosts []string) error {
 	c := &cert{
 		certFile: filepath.Join(appDir, "ca.crt"),
 		keyFile:  filepath.Join(appDir, "ca.key"),
@@ -70,7 +70,7 @@ func (c *cert) setupCA() error {
 
 func (c *cert) generatePair(certFile, keyFile string, hosts []string) error {
 	if len(hosts) == 0 {
-		return fmt.Errorf("no hosts provided")
+		return errors.New("no hosts provided")
 	}
 
 	err := c.loadCA()
@@ -129,11 +129,11 @@ func (c *cert) generatePair(certFile, keyFile string, hosts []string) error {
 		return fmt.Errorf("failed to generate client certificate: %w", err)
 	}
 
-	if err := os.WriteFile(certFile, clientCertPEM, 0644); err != nil {
+	if err := os.WriteFile(certFile, clientCertPEM, 0o644); err != nil {
 		return fmt.Errorf("failed to write client certificate: %w", err)
 	}
 
-	if err := os.WriteFile(keyFile, clientKeyPEM, 0644); err != nil {
+	if err := os.WriteFile(keyFile, clientKeyPEM, 0o644); err != nil {
 		return fmt.Errorf("failed to write client key: %w", err)
 	}
 
@@ -188,7 +188,7 @@ func (c *cert) generateCA() error {
 	}
 
 	// Write the certificate
-	if err := os.WriteFile(c.certFile, caCertPEM, 0644); err != nil {
+	if err := os.WriteFile(c.certFile, caCertPEM, 0o644); err != nil {
 		return fmt.Errorf("failed to write CA certificate: %w", err)
 	}
 
@@ -199,7 +199,7 @@ func (c *cert) generateCA() error {
 	}
 
 	// Write the key
-	if err := os.WriteFile(c.keyFile, caKeyPEM, 0644); err != nil {
+	if err := os.WriteFile(c.keyFile, caKeyPEM, 0o644); err != nil {
 		return fmt.Errorf("failed to write CA key: %w", err)
 	}
 
@@ -210,7 +210,7 @@ func (c *cert) generateCA() error {
 func decodePEM[T any](data []byte) (*T, error) {
 	block, _ := pem.Decode(data)
 	if block == nil {
-		return nil, fmt.Errorf("invalid PEM data: no block found")
+		return nil, errors.New("invalid PEM data: no block found")
 	}
 
 	var result any
@@ -230,7 +230,7 @@ func decodePEM[T any](data []byte) (*T, error) {
 
 		result, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 	default:
-		return nil, fmt.Errorf("unsupported type for decoding")
+		return nil, errors.New("unsupported type for decoding")
 	}
 
 	if err != nil {
@@ -239,16 +239,22 @@ func decodePEM[T any](data []byte) (*T, error) {
 
 	typedResult, ok := result.(*T)
 	if !ok {
-		return nil, fmt.Errorf("unexpected type in PEM decoding")
+		return nil, errors.New("unexpected type in PEM decoding")
 	}
 
 	return typedResult, nil
 }
 
-func generateCertificate(isCA bool, parentCert *x509.Certificate, parentKey *rsa.PrivateKey, commonName string, extra ...string) ([]byte, []byte, error) {
+func generateCertificate(
+	isCA bool,
+	parentCert *x509.Certificate,
+	parentKey *rsa.PrivateKey,
+	commonName string,
+	extra ...string,
+) (certPEM, keyPEM []byte, err error) {
 	key, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to generate key: %w", err)
 	}
 	certTemplate := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano()),
@@ -277,9 +283,9 @@ func generateCertificate(isCA bool, parentCert *x509.Certificate, parentKey *rsa
 
 	certDER, err := x509.CreateCertificate(rand.Reader, certTemplate, parentCert, &key.PublicKey, parentKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create certificate: %w", err)
 	}
-	certPEM := pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: certDER})
-	keyPEM := pem.EncodeToMemory(&pem.Block{Type: pemTypePrivateKey, Bytes: x509.MarshalPKCS1PrivateKey(key)})
+	certPEM = pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: certDER})
+	keyPEM = pem.EncodeToMemory(&pem.Block{Type: pemTypePrivateKey, Bytes: x509.MarshalPKCS1PrivateKey(key)})
 	return certPEM, keyPEM, nil
 }

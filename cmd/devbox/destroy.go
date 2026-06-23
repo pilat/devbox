@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -13,13 +14,15 @@ func init() {
 		Use:   "destroy",
 		Short: "Destroy devbox project",
 		Long:  "That command will destroy devbox project",
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}),
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			if err := runDown(ctx, p, true); err != nil {

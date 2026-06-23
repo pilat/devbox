@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -65,7 +66,7 @@ func (s *E2ESuite) SetupSuite() {
 
 	// Setup manifest repo
 	s.runGit("", "init", "--bare", s.manifestRepo)
-	s.Require().NoError(os.Mkdir(s.manifestDir, 0755))
+	s.Require().NoError(os.Mkdir(s.manifestDir, 0o755))
 	s.runGit(s.manifestDir, "init")
 
 	// Copy and configure manifest files
@@ -76,7 +77,7 @@ func (s *E2ESuite) SetupSuite() {
 	content, err := os.ReadFile(composeFile)
 	s.Require().NoError(err)
 	content = []byte(strings.ReplaceAll(string(content), "SOURCE_1_REPO", s.source1Repo))
-	s.Require().NoError(os.WriteFile(composeFile, content, 0644))
+	s.Require().NoError(os.WriteFile(composeFile, content, 0o644))
 
 	// Push manifest
 	s.runGit(s.manifestDir, "remote", "add", "origin", s.manifestRepo)
@@ -88,7 +89,7 @@ func (s *E2ESuite) SetupSuite() {
 
 	// Setup source 1 repo
 	s.runGit("", "init", "--bare", s.source1Repo)
-	s.Require().NoError(os.Mkdir(s.source1Dir, 0755))
+	s.Require().NoError(os.Mkdir(s.source1Dir, 0o755))
 
 	// Copy service-1 files
 	s.copyDir(filepath.Join(s.fixturesDir, "service-1"), s.source1Dir)
@@ -149,39 +150,41 @@ func (s *E2ESuite) copyDir(src, dst string) {
 		dstPath := filepath.Join(dst, entry.Name())
 
 		if entry.IsDir() {
-			s.Require().NoError(os.MkdirAll(dstPath, 0755))
+			s.Require().NoError(os.MkdirAll(dstPath, 0o755))
 			s.copyDir(srcPath, dstPath)
 		} else {
 			data, err := os.ReadFile(srcPath)
 			s.Require().NoError(err)
-			s.Require().NoError(os.WriteFile(dstPath, data, 0644))
+			s.Require().NoError(os.WriteFile(dstPath, data, 0o644))
 		}
 	}
 }
 
-func (s *E2ESuite) devbox(args ...string) (string, string, error) {
+func (s *E2ESuite) devbox(args ...string) (stdout, stderr string, err error) {
 	cmd := exec.Command("devbox", args...)
 	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 
-	stdout, err := cmd.Output()
-	var stderr []byte
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		stderr = exitErr.Stderr
+	outBytes, err := cmd.Output()
+	var errBytes []byte
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		errBytes = exitErr.Stderr
 	}
-	return string(stdout), string(stderr), err
+	return string(outBytes), string(errBytes), err
 }
 
-func (s *E2ESuite) devboxInDir(dir string, args ...string) (string, string, error) {
+func (s *E2ESuite) devboxInDir(dir string, args ...string) (stdout, stderr string, err error) {
 	cmd := exec.Command("devbox", args...)
 	cmd.Dir = dir
 	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 
-	stdout, err := cmd.Output()
-	var stderr []byte
-	if exitErr, ok := err.(*exec.ExitError); ok {
-		stderr = exitErr.Stderr
+	outBytes, err := cmd.Output()
+	var errBytes []byte
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		errBytes = exitErr.Stderr
 	}
-	return string(stdout), string(stderr), err
+	return string(outBytes), string(errBytes), err
 }
 
 // devboxRun executes devbox command ignoring output (for setup/teardown)
@@ -240,7 +243,7 @@ func (s *E2ESuite) removeVolumeFromDockerCompose() {
 
 	newContent := strings.ReplaceAll(string(content), `    volumes:
       - ./sources/service-1:/app`, "")
-	s.Require().NoError(os.WriteFile(composeFile, []byte(newContent), 0644))
+	s.Require().NoError(os.WriteFile(composeFile, []byte(newContent), 0o644))
 }
 
 func (s *E2ESuite) removeBuildContextFromDockerCompose() {
@@ -252,7 +255,7 @@ func (s *E2ESuite) removeBuildContextFromDockerCompose() {
       context: ./sources/service-1
       dockerfile: Dockerfile`, "")
 	newContent = strings.ReplaceAll(newContent, `image: local/service-1:latest`, `image: golang:1.21-alpine`)
-	s.Require().NoError(os.WriteFile(composeFile, []byte(newContent), 0644))
+	s.Require().NoError(os.WriteFile(composeFile, []byte(newContent), 0o644))
 }
 
 func (s *E2ESuite) cleanupProject() {
@@ -278,7 +281,7 @@ func main() {
 	http.ListenAndServe(":80", nil)
 }
 `
-	_ = os.WriteFile(mainGo, []byte(originalContent), 0644)
+	_ = os.WriteFile(mainGo, []byte(originalContent), 0o644)
 }
 
 // ============================================================================
@@ -458,7 +461,7 @@ func (s *E2ESuite) Test55_MountForBuildOperations() {
 	newContent := strings.ReplaceAll(string(content),
 		"Hello, World from service 1",
 		"Hello, World from service 1 updated")
-	s.Require().NoError(os.WriteFile(mainGo, []byte(newContent), 0644))
+	s.Require().NoError(os.WriteFile(mainGo, []byte(newContent), 0o644))
 
 	// Restart service
 	s.devboxRun("restart", "--name", "test-app", "service-1")
@@ -509,7 +512,7 @@ func (s *E2ESuite) Test57_MountForVolumeOperations() {
 	newContent := strings.ReplaceAll(string(content),
 		"Hello, World from service 1",
 		"Hello, World from service 1 updated")
-	s.Require().NoError(os.WriteFile(mainGo, []byte(newContent), 0644))
+	s.Require().NoError(os.WriteFile(mainGo, []byte(newContent), 0o644))
 
 	// Restart service
 	s.devboxRun("restart", "--name", "test-app", "service-1")

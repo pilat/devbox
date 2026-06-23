@@ -5,15 +5,21 @@ import (
 	"github.com/docker/compose/v5/pkg/api"
 )
 
-type Networks = types.Networks
-type Duration = types.Duration
+type (
+	Networks = types.Networks
+	Duration = types.Duration
+)
 
-var IncludeDependents = types.IncludeDependents
-var IgnoreDependencies = types.IgnoreDependencies
+var (
+	IncludeDependents  = types.IncludeDependents
+	IgnoreDependencies = types.IgnoreDependencies
+)
 
-type UpOptions = api.UpOptions
-type CreateOptions = api.CreateOptions
-type StartOptions = api.StartOptions
+type (
+	UpOptions     = api.UpOptions
+	CreateOptions = api.CreateOptions
+	StartOptions  = api.StartOptions
+)
 
 type RunOptions = api.RunOptions
 
@@ -25,6 +31,8 @@ type PsOptions = api.PsOptions
 
 type LogOptions = api.LogOptions
 
-var ServiceLabel = api.ServiceLabel
-var ProjectLabel = api.ProjectLabel
-var WorkingDirLabel = api.WorkingDirLabel
+var (
+	ServiceLabel    = api.ServiceLabel
+	ProjectLabel    = api.ProjectLabel
+	WorkingDirLabel = api.WorkingDirLabel
+)

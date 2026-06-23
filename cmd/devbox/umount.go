@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -17,28 +18,36 @@ func init() {
 		Short: "Umount source code",
 		Long:  "That command will umount source code from the project",
 		Args:  cobra.MinimumNArgs(0),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := mgr.AutodetectProject(ctx, projectName)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			if sourceName == "" {
-				if result, _ := mgr.AutodetectSource(ctx, p, "", manager.AutodetectSourceForUmount); result != nil && len(result.Sources) > 0 {
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				p, err := mgr.AutodetectProject(ctx, projectName)
+				if err != nil {
 					return []string{}, cobra.ShellCompDirectiveNoFileComp
 				}
-			}
 
-			if sourceName == "" && !cmd.Flags().Changed("source") {
-				return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
-			}
+				if sourceName == "" {
+					if result, _ := mgr.AutodetectSource(
+						ctx,
+						p,
+						"",
+						manager.AutodetectSourceForUmount,
+					); result != nil &&
+						len(result.Sources) > 0 {
+						return []string{}, cobra.ShellCompDirectiveNoFileComp
+					}
+				}
 
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}),
+				if sourceName == "" && !cmd.Flags().Changed("source") {
+					return []string{"--source"}, cobra.ShellCompDirectiveNoFileComp
+				}
+
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			result, err := mgr.AutodetectSource(ctx, p, sourceName, manager.AutodetectSourceForUmount)
@@ -64,14 +73,17 @@ func init() {
 
 	cmd.PersistentFlags().StringVarP(&sourceName, "source", "s", "", "Source name")
 
-	_ = cmd.RegisterFlagCompletionFunc("source", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := mgr.AutodetectProject(context.Background(), projectName)
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
+	_ = cmd.RegisterFlagCompletionFunc(
+		"source",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			p, err := mgr.AutodetectProject(context.Background(), projectName)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
 
-		return mgr.GetLocalMounts(p, toComplete), cobra.ShellCompDirectiveNoFileComp
-	})
+			return mgr.GetLocalMounts(p, toComplete), cobra.ShellCompDirectiveNoFileComp
+		},
+	)
 
 	root.AddCommand(cmd)
 }

@@ -6,6 +6,7 @@ package cert
 import (
 	"bytes"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -45,14 +46,18 @@ func (c *cert) installCA() error {
 	var lastErr error
 	for _, distro := range distroPaths {
 		// Ensure the directory exists
-		if err := os.MkdirAll(distro.certDir, 0755); err != nil {
+		if err := os.MkdirAll(distro.certDir, 0o755); err != nil {
 			lastErr = err
 			continue
 		}
 
 		// Write the CA certificate to the appropriate directory
 		caFilePath := filepath.Join(distro.certDir, "devbox-ca.crt")
-		if err := os.WriteFile(caFilePath, pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: c.cert.Raw}), 0644); err != nil {
+		if err := os.WriteFile(
+			caFilePath,
+			pem.EncodeToMemory(&pem.Block{Type: pemTypeCertificate, Bytes: c.cert.Raw}),
+			0o644,
+		); err != nil {
 			lastErr = err
 			continue
 		}
@@ -72,5 +77,5 @@ func (c *cert) installCA() error {
 		return fmt.Errorf("failed to install CA on Linux: %w", lastErr)
 	}
 
-	return fmt.Errorf("could not find a supported Linux distribution for CA installation")
+	return errors.New("could not find a supported Linux distribution for CA installation")
 }

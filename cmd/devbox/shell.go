@@ -3,14 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/client"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -21,16 +23,18 @@ func init() {
 		Short: "Run interactive shell in one of the services",
 		Long:  "That command will run interactive shell in one of the services",
 		Args:  cobra.ExactArgs(1),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			if len(args) > 0 {
-				return nil, cobra.ShellCompDirectiveNoFileComp
-			}
-			return suggestRunningServices(ctx, cmd, args, toComplete)
-		}),
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				if len(args) > 0 {
+					return nil, cobra.ShellCompDirectiveNoFileComp
+				}
+				return suggestRunningServices(ctx, cmd, args, toComplete)
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			if err := runShell(ctx, p, args[0], noTty); err != nil {
@@ -73,7 +77,7 @@ func runShell(ctx context.Context, p *project.Project, serviceName string, noTty
 	}
 
 	if lastShell == "" {
-		return fmt.Errorf("failed to find a shell")
+		return errors.New("failed to find a shell")
 	}
 
 	var tty bool
@@ -114,7 +118,7 @@ func findContainerID(ctx context.Context, projectName, serviceName string) (stri
 	return list.Items[0].ID, nil
 }
 
-func containerExec(ctx context.Context, containerID string, cmd []string) ([]byte, []byte, error) {
+func containerExec(ctx context.Context, containerID string, cmd []string) (stdoutBytes, stderrBytes []byte, err error) {
 	execResp, err := dockerClient.ExecCreate(ctx, containerID, client.ExecCreateOptions{
 		Cmd:          cmd,
 		AttachStdout: true,
@@ -143,7 +147,7 @@ func containerExec(ctx context.Context, containerID string, cmd []string) ([]byt
 	case <-done:
 		break
 	case <-ctx.Done():
-		return nil, nil, fmt.Errorf("context cancelled")
+		return nil, nil, errors.New("context cancelled")
 	}
 
 	return stdout.Bytes(), stderr.Bytes(), nil
@@ -151,8 +155,8 @@ func containerExec(ctx context.Context, containerID string, cmd []string) ([]byt
 
 func filterLabels(projectName, serviceName string) client.Filters {
 	return make(client.Filters).
-		Add("label", fmt.Sprintf("com.docker.compose.project=%s", projectName)).
-		Add("label", fmt.Sprintf("com.docker.compose.service=%s", serviceName)).
+		Add("label", "com.docker.compose.project="+projectName).
+		Add("label", "com.docker.compose.service="+serviceName).
 		Add("label", "com.docker.compose.container-number=1")
 }
 

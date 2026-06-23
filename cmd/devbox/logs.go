@@ -7,8 +7,9 @@ import (
 
 	"github.com/docker/cli/cli/streams"
 	"github.com/docker/compose/v5/cmd/formatter"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -17,23 +18,25 @@ func init() {
 		Short: "Show logs of services in devbox project",
 		Long:  "That command will show logs of services in devbox project",
 		Args:  cobra.MinimumNArgs(0),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := mgr.AutodetectProject(ctx, projectName)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				p, err := mgr.AutodetectProject(ctx, projectName)
+				if err != nil {
+					return []string{}, cobra.ShellCompDirectiveNoFileComp
+				}
 
-			results, err := getRunningServices(ctx, apiService, p, true, toComplete)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
+				results, err := getRunningServices(ctx, apiService, p, true, toComplete)
+				if err != nil {
+					return []string{}, cobra.ShellCompDirectiveNoFileComp
+				}
 
-			return results, cobra.ShellCompDirectiveNoFileComp
-		}),
+				return results, cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			if err := runLogs(ctx, p, args); err != nil {

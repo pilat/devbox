@@ -5,9 +5,7 @@ import (
 	"path/filepath"
 )
 
-var (
-	AppDir string = "/opt/devbox"
-)
+var AppDir = "/opt/devbox"
 
 const (
 	SourcesDir = "sources"

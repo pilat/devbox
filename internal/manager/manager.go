@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"regexp"
@@ -80,7 +81,7 @@ func (m *Manager) AutodetectProject(ctx context.Context, name string) (*project.
 	// 1. Check if the current dir is a local mount of one project
 	if p, ambiguous := m.detectByLocalMount(curDir, projects); p != nil {
 		if ambiguous {
-			return nil, fmt.Errorf("ambiguous project, please specify project name")
+			return nil, errors.New("ambiguous project, please specify project name")
 		}
 		return p, nil
 	}
@@ -89,13 +90,13 @@ func (m *Manager) AutodetectProject(ctx context.Context, name string) (*project.
 	curDirGit := m.gitFactory(curDir)
 	remoteURL, err := curDirGit.GetRemote(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("cannot detect project: not a git repository")
+		return nil, errors.New("cannot detect project: not a git repository")
 	}
 	remoteURL = git.NormalizeURL(remoteURL)
 
 	if p, ambiguous := m.detectBySourceRemote(remoteURL, projects); p != nil {
 		if ambiguous {
-			return nil, fmt.Errorf("ambiguous project, please specify project name")
+			return nil, errors.New("ambiguous project, please specify project name")
 		}
 		return p, nil
 	}
@@ -103,12 +104,12 @@ func (m *Manager) AutodetectProject(ctx context.Context, name string) (*project.
 	// 3. Check if the current dir is the project's own manifest repository
 	if p, ambiguous := m.detectByProjectRepo(ctx, remoteURL, projects); p != nil {
 		if ambiguous {
-			return nil, fmt.Errorf("ambiguous project, please specify project name")
+			return nil, errors.New("ambiguous project, please specify project name")
 		}
 		return p, nil
 	}
 
-	return nil, fmt.Errorf("cannot detect project: git remote does not match any known project")
+	return nil, errors.New("cannot detect project: git remote does not match any known project")
 }
 
 // loadAllProjects loads all available projects.
@@ -173,7 +174,11 @@ func (m *Manager) detectBySourceRemote(remoteURL string, projects []*project.Pro
 }
 
 // detectByProjectRepo checks if the current git remote matches the project's manifest repository.
-func (m *Manager) detectByProjectRepo(ctx context.Context, remoteURL string, projects []*project.Project) (*project.Project, bool) {
+func (m *Manager) detectByProjectRepo(
+	ctx context.Context,
+	remoteURL string,
+	projects []*project.Project,
+) (*project.Project, bool) {
 	var found *project.Project
 	ambiguous := false
 
@@ -198,7 +203,12 @@ func (m *Manager) detectByProjectRepo(ctx context.Context, remoteURL string, pro
 }
 
 // AutodetectSource detects sources and affected services based on current directory or explicit selection.
-func (m *Manager) AutodetectSource(ctx context.Context, proj *project.Project, sourceNameSel string, purpose AutodetectSourceType) (*SourceDetectionResult, error) {
+func (m *Manager) AutodetectSource(
+	ctx context.Context,
+	proj *project.Project,
+	sourceNameSel string,
+	purpose AutodetectSourceType,
+) (*SourceDetectionResult, error) {
 	if sourceNameSel != "" {
 		return m.detectExplicitSource(proj, sourceNameSel, purpose)
 	}
@@ -206,7 +216,11 @@ func (m *Manager) AutodetectSource(ctx context.Context, proj *project.Project, s
 }
 
 // detectExplicitSource handles the case when a source name is explicitly provided.
-func (m *Manager) detectExplicitSource(proj *project.Project, sourceNameSel string, purpose AutodetectSourceType) (*SourceDetectionResult, error) {
+func (m *Manager) detectExplicitSource(
+	proj *project.Project,
+	sourceNameSel string,
+	purpose AutodetectSourceType,
+) (*SourceDetectionResult, error) {
 	if !strings.HasPrefix(sourceNameSel, "./"+app.SourcesDir+"/") {
 		return nil, fmt.Errorf("source '%s' not found", sourceNameSel)
 	}
@@ -235,7 +249,7 @@ func (m *Manager) detectExplicitSource(proj *project.Project, sourceNameSel stri
 	}
 
 	if len(affectedServices) == 0 {
-		return nil, fmt.Errorf("no services found using the detected source")
+		return nil, errors.New("no services found using the detected source")
 	}
 
 	return &SourceDetectionResult{
@@ -245,7 +259,11 @@ func (m *Manager) detectExplicitSource(proj *project.Project, sourceNameSel stri
 }
 
 // detectSourceByGitRemote autodetects sources by matching git remote URLs.
-func (m *Manager) detectSourceByGitRemote(ctx context.Context, proj *project.Project, purpose AutodetectSourceType) (*SourceDetectionResult, error) {
+func (m *Manager) detectSourceByGitRemote(
+	ctx context.Context,
+	proj *project.Project,
+	purpose AutodetectSourceType,
+) (*SourceDetectionResult, error) {
 	curDir, err := m.fs.Getwd()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current directory: %w", err)
@@ -283,21 +301,47 @@ func (m *Manager) detectSourceByGitRemote(ctx context.Context, proj *project.Pro
 
 		for _, service := range proj.Services {
 			if service.Build != nil {
-				if relSource, lp, ok := m.matchSourcePath(sourcePrefix, service.Build.Context, relativePath, toplevelDir, proj, purpose); ok {
+				if relSource, lp, ok := m.matchSourcePath(
+					sourcePrefix,
+					service.Build.Context,
+					relativePath,
+					toplevelDir,
+					proj,
+					purpose,
+				); ok {
 					sources[relSource] = true
 					affectedServices[service.Name] = true
 					localPath = lp
-				} else if m.isSourceInWrongState(sourcePrefix, service.Build.Context, relativePath, proj, purpose) {
+				} else if m.isSourceInWrongState(
+					sourcePrefix,
+					service.Build.Context,
+					relativePath,
+					proj,
+					purpose,
+				) {
 					foundButWrongState = true
 				}
 			}
 
 			for _, volume := range service.Volumes {
-				if relSource, lp, ok := m.matchSourcePath(sourcePrefix, volume.Source, relativePath, toplevelDir, proj, purpose); ok {
+				if relSource, lp, ok := m.matchSourcePath(
+					sourcePrefix,
+					volume.Source,
+					relativePath,
+					toplevelDir,
+					proj,
+					purpose,
+				); ok {
 					sources[relSource] = true
 					affectedServices[service.Name] = true
 					localPath = lp
-				} else if m.isSourceInWrongState(sourcePrefix, volume.Source, relativePath, proj, purpose) {
+				} else if m.isSourceInWrongState(
+					sourcePrefix,
+					volume.Source,
+					relativePath,
+					proj,
+					purpose,
+				) {
 					foundButWrongState = true
 				}
 			}
@@ -307,11 +351,11 @@ func (m *Manager) detectSourceByGitRemote(ctx context.Context, proj *project.Pro
 	if len(sources) == 0 {
 		if foundButWrongState {
 			if purpose == AutodetectSourceForMount {
-				return nil, fmt.Errorf("source is already mounted")
+				return nil, errors.New("source is already mounted")
 			}
-			return nil, fmt.Errorf("source is not mounted")
+			return nil, errors.New("source is not mounted")
 		}
-		return nil, fmt.Errorf("no services found using the detected source")
+		return nil, errors.New("no services found using the detected source")
 	}
 
 	return &SourceDetectionResult{
@@ -322,7 +366,11 @@ func (m *Manager) detectSourceByGitRemote(ctx context.Context, proj *project.Pro
 }
 
 // isSourceInWrongState checks if a source path matches but is in the wrong mount state.
-func (m *Manager) isSourceInWrongState(sourcePrefix, servicePath, cwdRelPath string, proj *project.Project, purpose AutodetectSourceType) bool {
+func (m *Manager) isSourceInWrongState(
+	sourcePrefix, servicePath, cwdRelPath string,
+	proj *project.Project,
+	purpose AutodetectSourceType,
+) bool {
 	if purpose == AutodetectSourceForMount {
 		// For mount: check if servicePath is a mounted local path
 		for origPath, localPath := range proj.LocalMounts {
@@ -337,20 +385,18 @@ func (m *Manager) isSourceInWrongState(sourcePrefix, servicePath, cwdRelPath str
 				}
 			}
 		}
-	} else {
+	} else if strings.HasPrefix(servicePath, sourcePrefix) {
 		// For unmount: check if servicePath is an unmounted source path
-		if strings.HasPrefix(servicePath, sourcePrefix) {
-			serviceSubpath := strings.TrimPrefix(servicePath, sourcePrefix)
-			serviceSubpath = strings.TrimPrefix(serviceSubpath, string(filepath.Separator))
-			if cwdMatchesServiceSubpath(cwdRelPath, serviceSubpath) {
-				relSourcePath, err := filepath.Rel(proj.WorkingDir, servicePath)
-				if err != nil {
-					return false
-				}
-				relSourcePath = "./" + relSourcePath
-				if _, ok := proj.LocalMounts[relSourcePath]; !ok {
-					return true
-				}
+		serviceSubpath := strings.TrimPrefix(servicePath, sourcePrefix)
+		serviceSubpath = strings.TrimPrefix(serviceSubpath, string(filepath.Separator))
+		if cwdMatchesServiceSubpath(cwdRelPath, serviceSubpath) {
+			relSourcePath, err := filepath.Rel(proj.WorkingDir, servicePath)
+			if err != nil {
+				return false
+			}
+			relSourcePath = "./" + relSourcePath
+			if _, ok := proj.LocalMounts[relSourcePath]; !ok {
+				return true
 			}
 		}
 	}
@@ -359,8 +405,11 @@ func (m *Manager) isSourceInWrongState(sourcePrefix, servicePath, cwdRelPath str
 
 // matchSourcePath checks if the cwd's relative path is inside the service's source path.
 // Returns the relative source path, the local path to mount, and true if matched.
-func (m *Manager) matchSourcePath(sourcePrefix, servicePath, cwdRelPath, toplevelDir string, proj *project.Project, purpose AutodetectSourceType) (string, string, bool) {
-	var relSourcePath string
+func (m *Manager) matchSourcePath(
+	sourcePrefix, servicePath, cwdRelPath, toplevelDir string,
+	proj *project.Project,
+	purpose AutodetectSourceType,
+) (relSourcePath, localPath string, matched bool) {
 	var serviceSubpath string
 
 	if strings.HasPrefix(servicePath, sourcePrefix) {
@@ -376,8 +425,8 @@ func (m *Manager) matchSourcePath(sourcePrefix, servicePath, cwdRelPath, topleve
 		relSourcePath = "./" + relSourcePath
 	} else if purpose == AutodetectSourceForUmount {
 		// For unmount: servicePath might be a local mount path, reverse lookup original source
-		for origPath, localPath := range proj.LocalMounts {
-			if servicePath == localPath && strings.HasPrefix(origPath, "./"+app.SourcesDir+"/") {
+		for origPath, mountPath := range proj.LocalMounts {
+			if servicePath == mountPath && strings.HasPrefix(origPath, "./"+app.SourcesDir+"/") {
 				// Check if this mount belongs to the current source
 				fullOrigPath := filepath.Join(proj.WorkingDir, origPath)
 				if strings.HasPrefix(fullOrigPath, sourcePrefix) {
@@ -409,7 +458,7 @@ func (m *Manager) matchSourcePath(sourcePrefix, servicePath, cwdRelPath, topleve
 	}
 
 	// Calculate the local path: <toplevel>/<serviceSubpath>
-	localPath := toplevelDir
+	localPath = toplevelDir
 	if serviceSubpath != "" {
 		localPath = filepath.Join(toplevelDir, serviceSubpath)
 	}
@@ -479,7 +528,11 @@ func (m *Manager) list(filter string) ([]string, error) {
 }
 
 func (m *Manager) load(ctx context.Context, name string, profiles []string) (*project.Project, error) {
-	return project.New(ctx, name, profiles)
+	p, err := project.New(ctx, name, profiles)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load project: %w", err)
+	}
+	return p, nil
 }
 
 func (m *Manager) Init(ctx context.Context, name, url, branch string) error {
@@ -490,7 +543,7 @@ func (m *Manager) Init(ctx context.Context, name, url, branch string) error {
 	projectFolder := filepath.Join(app.AppDir, name)
 
 	if _, err := m.fs.Stat(projectFolder); err == nil {
-		return fmt.Errorf("project already exists")
+		return errors.New("project already exists")
 	}
 
 	cleanup := func() {
@@ -504,9 +557,9 @@ func (m *Manager) Init(ctx context.Context, name, url, branch string) error {
 	}
 
 	patterns := []string{
-		fmt.Sprintf("/%s/", app.SourcesDir),
-		fmt.Sprintf("/%s", app.StateFile),
-		fmt.Sprintf("/%s", app.EnvFile),
+		"/" + app.SourcesDir + "/",
+		"/" + app.StateFile,
+		"/" + app.EnvFile,
 	}
 
 	if err := g.SetLocalExclude(patterns); err != nil {
@@ -518,7 +571,7 @@ func (m *Manager) Init(ctx context.Context, name, url, branch string) error {
 		app.EnvFile:   "",
 		app.StateFile: "{}",
 	} {
-		if err := m.fs.WriteFile(filepath.Join(projectFolder, k), []byte(content), 0644); err != nil {
+		if err := m.fs.WriteFile(filepath.Join(projectFolder, k), []byte(content), 0o644); err != nil {
 			cleanup()
 			return fmt.Errorf("failed to create file: %w", err)
 		}

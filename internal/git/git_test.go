@@ -122,7 +122,9 @@ func TestPull(t *testing.T) {
 		{
 			name: "reset fails",
 			setupMock: func(m *MockCommandRunner) {
-				m.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "reset", "--hard").Return("error output", errors.New("reset failed"))
+				m.EXPECT().
+					Run(mock.Anything, "git", "-C", "/tmp/test", "reset", "--hard").
+					Return("error output", errors.New("reset failed"))
 			},
 			wantErr:    true,
 			errContain: "failed to reset",
@@ -131,7 +133,9 @@ func TestPull(t *testing.T) {
 			name: "clean fails",
 			setupMock: func(m *MockCommandRunner) {
 				m.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "reset", "--hard").Return("", nil)
-				m.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "clean", "-fd").Return("error output", errors.New("clean failed"))
+				m.EXPECT().
+					Run(mock.Anything, "git", "-C", "/tmp/test", "clean", "-fd").
+					Return("error output", errors.New("clean failed"))
 			},
 			wantErr:    true,
 			errContain: "failed to clean",
@@ -141,7 +145,9 @@ func TestPull(t *testing.T) {
 			setupMock: func(m *MockCommandRunner) {
 				m.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "reset", "--hard").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "clean", "-fd").Return("", nil)
-				m.EXPECT().RunWithTTY(mock.Anything, "git", "-C", "/tmp/test", "pull", "--rebase").Return("conflict", errors.New("pull failed"))
+				m.EXPECT().
+					RunWithTTY(mock.Anything, "git", "-C", "/tmp/test", "pull", "--rebase").
+					Return("conflict", errors.New("pull failed"))
 			},
 			wantErr:    true,
 			errContain: "failed to pull",
@@ -354,14 +360,14 @@ func TestSetLocalExclude(t *testing.T) {
 			name:     "writes patterns",
 			patterns: []string{"*.log", "node_modules/", ".env"},
 			setup: func(t *testing.T, dir string) {
-				err := os.MkdirAll(filepath.Join(dir, ".git/info"), 0755)
+				err := os.MkdirAll(filepath.Join(dir, ".git", "info"), 0o755)
 				if err != nil {
 					t.Fatal(err)
 				}
 			},
 			wantErr: false,
 			verify: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, ".git/info/exclude"))
+				content, err := os.ReadFile(filepath.Join(dir, ".git", "info", "exclude"))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -375,18 +381,18 @@ func TestSetLocalExclude(t *testing.T) {
 			name:     "empty patterns",
 			patterns: []string{},
 			setup: func(t *testing.T, dir string) {
-				err := os.MkdirAll(filepath.Join(dir, ".git/info"), 0755)
+				err := os.MkdirAll(filepath.Join(dir, ".git", "info"), 0o755)
 				if err != nil {
 					t.Fatal(err)
 				}
 			},
 			wantErr: false,
 			verify: func(t *testing.T, dir string) {
-				content, err := os.ReadFile(filepath.Join(dir, ".git/info/exclude"))
+				content, err := os.ReadFile(filepath.Join(dir, ".git", "info", "exclude"))
 				if err != nil {
 					t.Fatal(err)
 				}
-				if string(content) != "" {
+				if len(content) != 0 {
 					t.Errorf("content should be empty, got %q", string(content))
 				}
 			},
@@ -438,7 +444,9 @@ func TestSync(t *testing.T) {
 			setupGit:       false,
 			sparseCheckout: nil,
 			setupMock: func(m *MockCommandRunner, targetPath string) {
-				m.EXPECT().RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).Return("", nil)
+				m.EXPECT().
+					RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).
+					Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "disable").Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
 				// Pull's reset (removeIgnored=false)
@@ -454,9 +462,15 @@ func TestSync(t *testing.T) {
 			setupGit:       false,
 			sparseCheckout: []string{"src", "docs"},
 			setupMock: func(m *MockCommandRunner, targetPath string) {
-				m.EXPECT().RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).Return("", nil)
-				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "init", "--cone").Return("", nil)
-				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "set", "src", "docs").Return("", nil)
+				m.EXPECT().
+					RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).
+					Return("", nil)
+				m.EXPECT().
+					Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "init", "--cone").
+					Return("", nil)
+				m.EXPECT().
+					Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "set", "src", "docs").
+					Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
 				// Pull's reset (removeIgnored=false)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil)
@@ -491,7 +505,9 @@ func TestSync(t *testing.T) {
 			setupGit:       false,
 			sparseCheckout: nil,
 			setupMock: func(m *MockCommandRunner, targetPath string) {
-				m.EXPECT().RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).Return("auth failed", errors.New("exit status 128"))
+				m.EXPECT().
+					RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).
+					Return("auth failed", errors.New("exit status 128"))
 			},
 			wantErr:    true,
 			errContain: "failed to clone",
@@ -502,9 +518,13 @@ func TestSync(t *testing.T) {
 			setupGit:       false,
 			sparseCheckout: nil,
 			setupMock: func(m *MockCommandRunner, targetPath string) {
-				m.EXPECT().RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).Return("", nil)
+				m.EXPECT().
+					RunWithTTY(mock.Anything, "git", "clone", "--no-checkout", "--depth", "1", "https://github.com/org/repo.git", targetPath).
+					Return("", nil)
 				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "disable").Return("", nil)
-				m.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("branch not found", errors.New("exit status 1"))
+				m.EXPECT().
+					Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").
+					Return("branch not found", errors.New("exit status 1"))
 			},
 			wantErr:    true,
 			errContain: "failed to checkout",
@@ -517,10 +537,10 @@ func TestSync(t *testing.T) {
 			targetPath := filepath.Join(dir, "repo")
 
 			if tt.setupDir {
-				_ = os.MkdirAll(targetPath, 0755)
+				_ = os.MkdirAll(targetPath, 0o755)
 			}
 			if tt.setupGit {
-				_ = os.MkdirAll(filepath.Join(targetPath, ".git"), 0755)
+				_ = os.MkdirAll(filepath.Join(targetPath, ".git"), 0o755)
 			}
 
 			runner := NewMockCommandRunner(t)
@@ -636,12 +656,28 @@ func TestNormalizeURL(t *testing.T) {
 		// Azure DevOps (different URL formats normalize to same value)
 		{"Azure SSH", "git@ssh.dev.azure.com:v3/myorg/myproject/myrepo", "dev.azure.com/myorg/myproject/myrepo"},
 		{"Azure HTTPS", "https://dev.azure.com/myorg/myproject/_git/myrepo", "dev.azure.com/myorg/myproject/myrepo"},
-		{"Azure HTTPS with user", "https://myorg@dev.azure.com/myorg/myproject/_git/myrepo", "dev.azure.com/myorg/myproject/myrepo"},
-		{"Azure old format", "https://myorg.visualstudio.com/myproject/_git/myrepo", "dev.azure.com/myorg/myproject/myrepo"},
+		{
+			"Azure HTTPS with user",
+			"https://myorg@dev.azure.com/myorg/myproject/_git/myrepo",
+			"dev.azure.com/myorg/myproject/myrepo",
+		},
+		{
+			"Azure old format",
+			"https://myorg.visualstudio.com/myproject/_git/myrepo",
+			"dev.azure.com/myorg/myproject/myrepo",
+		},
 
 		// AWS CodeCommit
-		{"CodeCommit HTTPS", "https://git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo", "git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo"},
-		{"CodeCommit SSH", "ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo", "git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo"},
+		{
+			"CodeCommit HTTPS",
+			"https://git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo",
+			"git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo",
+		},
+		{
+			"CodeCommit SSH",
+			"ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo",
+			"git-codecommit.us-east-1.amazonaws.com/v1/repos/myrepo",
+		},
 	}
 
 	for _, tt := range tests {

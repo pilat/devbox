@@ -14,6 +14,14 @@ brew install devbox
 1. Download the appropriate binary for your system from the [Releases Page](https://github.com/pilat/devbox/releases)
 2. Make the binary executable and add it to your PATH
 
+!!! note "macOS Gatekeeper"
+    The release binaries are unsigned, so macOS quarantines anything you download
+    and Gatekeeper refuses to run it. Clear the quarantine bit before the first run:
+
+    ```bash
+    xattr -dr com.apple.quarantine ./devbox
+    ```
+
 ## System Requirements
 
 - Docker Engine 20.10.0 or later

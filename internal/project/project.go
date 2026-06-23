@@ -13,14 +13,14 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/consts"
-	"github.com/pilat/devbox/internal/app"
-	"golang.org/x/net/idna"
-
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v5/pkg/api"
+	"golang.org/x/net/idna"
+
+	"github.com/pilat/devbox/internal/app"
 )
 
-// Replacement of composer service with our state keeper. Another extended service (with client inside) will be used.
+// Project wraps a compose-go project with devbox extensions (sources, scenarios, hosts, cert) and mount state.
 type Project struct {
 	*types.Project
 
@@ -123,13 +123,13 @@ func (p *Project) SaveState() error {
 		Mounts: p.LocalMounts,
 	}
 
-	json, err := json.Marshal(state)
+	data, err := json.Marshal(state)
 	if err != nil {
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
 	filename := filepath.Join(p.WorkingDir, app.StateFile)
-	err = os.WriteFile(filename, json, 0644)
+	err = os.WriteFile(filename, data, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
@@ -192,73 +192,103 @@ func loadState(p *Project) error {
 }
 
 func applySources(p *Project) error {
-	if s, ok := p.Extensions["x-devbox-sources"]; ok {
-		p.Sources = s.(SourceConfigs) //nolint: forcetypeassert
+	s, ok := p.Extensions["x-devbox-sources"]
+	if !ok {
+		return nil
 	}
+
+	sources, ok := s.(SourceConfigs)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for x-devbox-sources extension", s)
+	}
+	p.Sources = sources
 
 	return nil
 }
 
 func applyScenarios(p *Project) error {
-	if s, ok := p.Extensions["x-devbox-scenarios"]; ok {
-		p.Scenarios = s.(ScenarioConfigs) //nolint: forcetypeassert
+	s, ok := p.Extensions["x-devbox-scenarios"]
+	if !ok {
+		return nil
 	}
+
+	scenarios, ok := s.(ScenarioConfigs)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for x-devbox-scenarios extension", s)
+	}
+	p.Scenarios = scenarios
 
 	return nil
 }
 
 func applyHosts(p *Project) error {
-	if s, ok := p.Extensions["x-devbox-hosts"]; ok {
-		hostConfigs := s.(HostConfigs) //nolint: forcetypeassert
-
-		ipToHosts := make(map[string][]string)
-		for _, item := range hostConfigs {
-			ip := net.ParseIP(item.IP)
-			item.IP = ip.String()
-
-			for _, hostname := range item.Hosts {
-				hostname, err := idna.Lookup.ToASCII(hostname)
-				if err != nil {
-					return fmt.Errorf("failed to convert hostname to ASCII: %w", err)
-				}
-
-				if _, ok := ipToHosts[item.IP]; !ok {
-					ipToHosts[item.IP] = []string{}
-				}
-
-				ipToHosts[item.IP] = append(ipToHosts[item.IP], hostname)
-			}
-		}
-
-		// Sort IPs to ensure deterministic output order
-		ips := make([]string, 0, len(ipToHosts))
-		for ip := range ipToHosts {
-			ips = append(ips, ip)
-		}
-		slices.Sort(ips)
-
-		entities := make([]string, 0, len(ips))
-		for _, ip := range ips {
-			slices.Sort(ipToHosts[ip])
-			entities = append(entities, fmt.Sprintf("%s %s", ip, strings.Join(ipToHosts[ip], " ")))
-		}
-
-		p.HostEntities = entities
+	s, ok := p.Extensions["x-devbox-hosts"]
+	if !ok {
+		return nil
 	}
+
+	hostConfigs, ok := s.(HostConfigs)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for x-devbox-hosts extension", s)
+	}
+
+	ipToHosts := make(map[string][]string)
+	for _, item := range hostConfigs {
+		ip := net.ParseIP(item.IP)
+		if ip == nil {
+			return fmt.Errorf("invalid IP %q for x-devbox-hosts extension", item.IP)
+		}
+		item.IP = ip.String()
+
+		for _, hostname := range item.Hosts {
+			asciiHost, err := idna.Lookup.ToASCII(hostname)
+			if err != nil {
+				return fmt.Errorf("failed to convert hostname to ASCII: %w", err)
+			}
+
+			if _, exists := ipToHosts[item.IP]; !exists {
+				ipToHosts[item.IP] = []string{}
+			}
+
+			ipToHosts[item.IP] = append(ipToHosts[item.IP], asciiHost)
+		}
+	}
+
+	// Sort IPs to ensure deterministic output order
+	ips := make([]string, 0, len(ipToHosts))
+	for ip := range ipToHosts {
+		ips = append(ips, ip)
+	}
+	slices.Sort(ips)
+
+	entities := make([]string, 0, len(ips))
+	for _, ip := range ips {
+		slices.Sort(ipToHosts[ip])
+		entities = append(entities, fmt.Sprintf("%s %s", ip, strings.Join(ipToHosts[ip], " ")))
+	}
+
+	p.HostEntities = entities
 
 	return nil
 }
 
 func applyCert(p *Project) error {
-	if s, ok := p.Extensions["x-devbox-cert"]; ok {
-		p.CertConfig = s.(CertConfig) //nolint: forcetypeassert
+	s, ok := p.Extensions["x-devbox-cert"]
+	if !ok {
+		return nil
+	}
 
-		if p.CertConfig.CertFile != "" {
-			p.CertConfig.CertFile = p.absPath(p.CertConfig.CertFile)
-		}
-		if p.CertConfig.KeyFile != "" {
-			p.CertConfig.KeyFile = p.absPath(p.CertConfig.KeyFile)
-		}
+	cfg, ok := s.(CertConfig)
+	if !ok {
+		return fmt.Errorf("unexpected type %T for x-devbox-cert extension", s)
+	}
+	p.CertConfig = cfg
+
+	if p.CertConfig.CertFile != "" {
+		p.CertConfig.CertFile = p.absPath(p.CertConfig.CertFile)
+	}
+	if p.CertConfig.KeyFile != "" {
+		p.CertConfig.KeyFile = p.absPath(p.CertConfig.KeyFile)
 	}
 
 	return nil
@@ -267,8 +297,11 @@ func applyCert(p *Project) error {
 func setupGracePeriod(p *Project) error {
 	var defaultStopGracePeriod *Duration
 
-	if s, ok := p.Extensions["x-devbox-default-stop-grace-period"]; ok {
-		v := s.(Duration) //nolint: forcetypeassert
+	if s, found := p.Extensions["x-devbox-default-stop-grace-period"]; found {
+		v, ok := s.(Duration)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for x-devbox-default-stop-grace-period extension", s)
+		}
 		defaultStopGracePeriod = &v
 	}
 
@@ -385,7 +418,7 @@ func convertToEnvName(name string) string {
 
 	// Ensure the name starts with a letter or underscore
 	finalName := result.String()
-	if len(finalName) > 0 && !unicode.IsLetter(rune(finalName[0])) {
+	if finalName != "" && !unicode.IsLetter(rune(finalName[0])) {
 		finalName = "_" + finalName
 	}
 

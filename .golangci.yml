@@ -3,26 +3,151 @@ version: "2"
 linters:
   enable:
     - errcheck
-    # - wrapcheck  # TODO
     - govet
-    - ineffassign
     - staticcheck
-    - goconst
-    # - gocyclo  # TODO
+    - ineffassign
+    - bodyclose
+    - nilerr
+    - nilnil
+    - forcetypeassert
+    - contextcheck
+    - containedctx
+    - unparam
+    - wastedassign
+    - exhaustive
+    - errorlint
+    - wrapcheck
     - misspell
     - whitespace
     - nolintlint
+    - revive
+    - unconvert
+    - predeclared
+    - usestdlibvars
+    - dupword
+    - goconst
+    - gocritic
+    - gosec
+    - prealloc
+    - perfsprint
+    - intrange
+
   settings:
-    gocyclo:
-      min-complexity: 15
+    errcheck:
+      check-blank: false
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    staticcheck:
+      checks:
+        - all
+        - -ST1000
+    errorlint:
+      errorf: true
+      errorf-multi: true
+      asserts: true
+      comparison: true
+    nilnil:
+      checked-types:
+        - ptr
+        - func
+        - iface
+        - map
+        - chan
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam
+        - rangeValCopy
+        - ifElseChain
+        - unlambda
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Join(
+    perfsprint:
+      int-conversion: true
+      err-error: true
+      errorf: true
+      sprintf1: true
+    goconst:
+      ignore-tests: true
+    gosec:
+      excludes:
+        - G104
+        - G204
+        - G304
+        - G301
+        - G302
+        - G306
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: if-return
+        - name: increment-decrement
+        - name: var-declaration
+        - name: range
+        - name: time-naming
+        - name: indent-error-flow
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
   exclusions:
+    generated: lax
     paths:
       - tmp
+    rules:
+      - linters: [gosec]
+        path: _test\.go
+      - linters: [dupword]
+        path: _test\.go
+      - linters: [errcheck]
+        path: _test\.go
+        source: "Close\\(\\)"
+      - linters: [bodyclose]
+        path: _test\.go
+      - linters: [wrapcheck]
+        path: _test\.go
+      - linters: [containedctx]
+        path: _test\.go
+      - linters: [goconst]
+        path: _test\.go
+      - linters: [errcheck]
+        source: "defer .+\\.Close\\("
+      - linters: [govet]
+        text: 'shadow: declaration of "err" shadows'
+      - linters: [unparam]
+        source: "^func \\(.+\\) .+\\(.*\\) .+ \\{$"
+      - linters: [wrapcheck]
+        source: "ctx\\.Err\\(\\)"
 
 formatters:
   enable:
-    - gofmt
-    - goimports
+    - gofumpt
+    - gci
+    - golines
+  settings:
+    gofumpt:
+      module-path: github.com/pilat/devbox
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/pilat/devbox)
+    golines:
+      max-len: 120
   exclusions:
     paths:
       - tmp

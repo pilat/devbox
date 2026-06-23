@@ -7,8 +7,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -22,9 +23,11 @@ func init() {
 		Use:   "env",
 		Short: "Edit the environment configuration",
 		Long:  "Opens the project's .env file in the default editor for editing",
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}),
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			project, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
