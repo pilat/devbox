@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/pilat/devbox/internal/git"
-	"github.com/pilat/devbox/internal/pkg/fs"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/pilat/devbox/internal/git"
+	"github.com/pilat/devbox/internal/pkg/fs"
+	"github.com/pilat/devbox/internal/project"
 )
 
 const testProjectName = "myproject"
@@ -1534,7 +1535,14 @@ func TestMatchSourcePath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := New()
-			relSource, localPath, ok := m.matchSourcePath(tt.sourcePrefix, tt.servicePath, tt.cwdRelPath, tt.toplevelDir, tt.proj, tt.purpose)
+			relSource, localPath, ok := m.matchSourcePath(
+				tt.sourcePrefix,
+				tt.servicePath,
+				tt.cwdRelPath,
+				tt.toplevelDir,
+				tt.proj,
+				tt.purpose,
+			)
 
 			if ok != tt.wantOk {
 				t.Errorf("matchSourcePath() ok = %v, want %v", ok, tt.wantOk)
@@ -1554,7 +1562,7 @@ func TestMatchSourcePath(t *testing.T) {
 // ============================================================================
 
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
+	return len(s) >= len(substr) && (s == substr || s != "" && containsHelper(s, substr))
 }
 
 func containsHelper(s, substr string) bool {

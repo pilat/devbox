@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"github.com/pilat/devbox/internal/git"
 	"github.com/pilat/devbox/internal/table"
-	"github.com/spf13/cobra"
 )
 
 func init() {

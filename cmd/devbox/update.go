@@ -9,10 +9,11 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/compose/v5/pkg/api"
+	"github.com/spf13/cobra"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -21,9 +22,11 @@ func init() {
 		Short: "Update devbox project sources",
 		Long:  "That command will update sources in devbox project",
 		Args:  cobra.MinimumNArgs(0),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}),
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			// We are attempting to update the project by its name before trying autodetection,
 			// as autodetection may fail if the project manifest is damaged.

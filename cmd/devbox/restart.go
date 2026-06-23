@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/docker/compose/v5/pkg/api"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -22,7 +23,7 @@ func init() {
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			if err := runProjectUpdate(ctx, p); err != nil {
@@ -55,19 +56,27 @@ func init() {
 
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
-	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := mgr.AutodetectProject(context.Background(), projectName)
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
+	_ = cmd.RegisterFlagCompletionFunc(
+		"profile",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			p, err := mgr.AutodetectProject(context.Background(), projectName)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
 
-		return getProfileCompletions(p, toComplete)
-	})
+			return getProfileCompletions(p, toComplete)
+		},
+	)
 
 	root.AddCommand(cmd)
 }
 
-func suggestRunningServices(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func suggestRunningServices(
+	ctx context.Context,
+	cmd *cobra.Command,
+	args []string,
+	toComplete string,
+) ([]string, cobra.ShellCompDirective) {
 	p, err := mgr.AutodetectProject(ctx, projectName)
 	if err != nil {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
@@ -123,14 +132,16 @@ func runRestart(ctx context.Context, p *project.Project, services []string, noDe
 		return err
 	}
 
-	if err := runUp(ctx, p); err != nil {
-		return err
-	}
-
-	return nil
+	return runUp(ctx, p)
 }
 
-func getRunningServices(ctx context.Context, a api.Compose, p *project.Project, all bool, filter string) ([]string, error) {
+func getRunningServices(
+	ctx context.Context,
+	a api.Compose,
+	p *project.Project,
+	all bool,
+	filter string,
+) ([]string, error) {
 	opts := project.PsOptions{
 		Project: p.Project,
 		All:     all,

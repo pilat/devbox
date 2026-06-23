@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/cert"
 	"github.com/pilat/devbox/internal/hosts"
 	"github.com/pilat/devbox/internal/project"
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -21,23 +22,25 @@ func init() {
 		Use:   "up",
 		Short: "Start devbox project",
 		Long:  "That command will start devbox project",
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := mgr.AutodetectProject(ctx, projectName)
-			if err != nil {
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				p, err := mgr.AutodetectProject(ctx, projectName)
+				if err != nil {
+					return []string{}, cobra.ShellCompDirectiveNoFileComp
+				}
+
+				allProfiles := p.AllServices().GetProfiles()
+				if len(profiles) == 0 && len(allProfiles) > 0 {
+					return []string{"--profile"}, cobra.ShellCompDirectiveNoFileComp
+				}
+
 				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			allProfiles := p.AllServices().GetProfiles()
-			if len(profiles) == 0 && len(allProfiles) > 0 {
-				return []string{"--profile"}, cobra.ShellCompDirectiveNoFileComp
-			}
-
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}),
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			if err := runProjectUpdate(ctx, p); err != nil {
@@ -76,14 +79,17 @@ func init() {
 
 	cmd.PersistentFlags().StringSliceVarP(&profiles, "profile", "p", []string{}, "Profile to use")
 
-	_ = cmd.RegisterFlagCompletionFunc("profile", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		p, err := mgr.AutodetectProject(context.Background(), projectName)
-		if err != nil {
-			return []string{}, cobra.ShellCompDirectiveNoFileComp
-		}
+	_ = cmd.RegisterFlagCompletionFunc(
+		"profile",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			p, err := mgr.AutodetectProject(context.Background(), projectName)
+			if err != nil {
+				return []string{}, cobra.ShellCompDirectiveNoFileComp
+			}
 
-		return getProfileCompletions(p, toComplete)
-	})
+			return getProfileCompletions(p, toComplete)
+		},
+	)
 
 	root.AddCommand(cmd)
 }
@@ -173,7 +179,7 @@ func runCertUpdate(p *project.Project, firstTime bool) error {
 
 	err := cert.SetupCA(app.AppDir)
 	if err != nil && firstTime {
-		args := []string{"--", "devbox", "install-ca", "--name", p.Name}
+		args := []string{"--", binName, "install-ca", nameFlag, p.Name}
 
 		cmd := exec.Command("sudo", args...)
 		if err := cmd.Run(); err != nil {
@@ -201,7 +207,7 @@ func runHostsUpdate(p *project.Project, firstTime, cleanup bool) error {
 	changed, err := hosts.Save(p.Name, entities)
 	if err != nil && firstTime {
 		// Permission denied - retry with sudo
-		args := []string{"--", "devbox", "update-hosts", "--name", p.Name}
+		args := []string{"--", binName, "update-hosts", nameFlag, p.Name}
 		if cleanup {
 			args = append(args, "--cleanup")
 		}

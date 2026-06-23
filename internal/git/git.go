@@ -47,8 +47,8 @@ func (s *svc) Clone(ctx context.Context, url, branch string) error {
 }
 
 func (s *svc) SetLocalExclude(patterns []string) error {
-	excludeFile := filepath.Join(s.targetPath, ".git/info/exclude")
-	file, err := os.OpenFile(excludeFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	excludeFile := filepath.Join(s.targetPath, ".git", "info", "exclude")
+	file, err := os.OpenFile(excludeFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to open exclude file: %w", err)
 	}
@@ -93,7 +93,10 @@ func (s *svc) Sync(ctx context.Context, url, branch string, sparseCheckout []str
 			return fmt.Errorf("failed to init sparse-checkout: %s %w", out, err)
 		}
 
-		out, err = s.runner.Run(ctx, "git", append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
+		out, err = s.runner.Run(
+			ctx,
+			"git",
+			append([]string{"-C", s.targetPath, "sparse-checkout", "set"}, sparseCheckout...)...)
 		if err != nil {
 			return fmt.Errorf("failed to set sparse-checkout: %s %w", out, err)
 		}
@@ -163,7 +166,7 @@ func (s *svc) GetTopLevel(ctx context.Context) (string, error) {
 }
 
 func (s *svc) reset(ctx context.Context, removeIgnored bool) error {
-	_ = os.Remove(filepath.Join(s.targetPath, ".git/index.lock"))
+	_ = os.Remove(filepath.Join(s.targetPath, ".git", "index.lock"))
 
 	out, err := s.runner.Run(ctx, "git", "-C", s.targetPath, "reset", "--hard")
 	if err != nil {

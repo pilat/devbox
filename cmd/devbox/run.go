@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/docker/compose/v5/pkg/api"
-	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/project"
 )
 
 func init() {
@@ -17,23 +18,25 @@ func init() {
 		Short: "Run scenario defined in devbox project",
 		Long:  "You can pass additional arguments to the scenario",
 		Args:  cobra.ExactArgs(1),
-		ValidArgsFunction: validArgsWrapper(func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-			p, err := mgr.AutodetectProject(ctx, projectName)
-			if err != nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
+		ValidArgsFunction: validArgsWrapper(
+			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+				p, err := mgr.AutodetectProject(ctx, projectName)
+				if err != nil {
+					return []string{}, cobra.ShellCompDirectiveNoFileComp
+				}
 
-			// If a scenario is already provided (or project is not detected), disallow further completions
-			if len(args) > 0 || p == nil {
-				return []string{}, cobra.ShellCompDirectiveNoFileComp
-			}
+				// If a scenario is already provided (or project is not detected), disallow further completions
+				if len(args) > 0 || p == nil {
+					return []string{}, cobra.ShellCompDirectiveNoFileComp
+				}
 
-			return p.GetScenarios(toComplete), cobra.ShellCompDirectiveNoFileComp
-		}),
+				return p.GetScenarios(toComplete), cobra.ShellCompDirectiveNoFileComp
+			},
+		),
 		RunE: runWrapper(func(ctx context.Context, cmd *cobra.Command, args []string) error {
 			p, err := mgr.AutodetectProject(ctx, projectName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
 			command := args[0]
@@ -72,7 +75,7 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 		return fmt.Errorf("scenario %q not found", command)
 	}
 
-	commands := []string{}
+	commands := make([]string, 0, len(scenario.Command)+len(args))
 	commands = append(commands, scenario.Command...)
 	commands = append(commands, args...)
 

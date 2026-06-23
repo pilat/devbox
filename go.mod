@@ -1,18 +1,18 @@
 module github.com/pilat/devbox
 
-go 1.25.5
+go 1.26.4
 
 require (
-	github.com/compose-spec/compose-go/v2 v2.11.0
-	github.com/docker/cli v29.5.1+incompatible
+	github.com/compose-spec/compose-go/v2 v2.12.1
+	github.com/docker/cli v29.6.0+incompatible
 	github.com/docker/compose/v5 v5.1.4
-	github.com/jedib0t/go-pretty/v6 v6.7.8
+	github.com/jedib0t/go-pretty/v6 v6.8.1
 	github.com/moby/moby/api v1.54.2
 	github.com/moby/moby/client v0.4.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.51.0
-	golang.org/x/term v0.41.0
+	golang.org/x/net v0.56.0
+	golang.org/x/term v0.44.0
 )
 
 require (
@@ -121,10 +121,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect

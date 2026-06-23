@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"time"
@@ -41,8 +42,11 @@ func (e osDirEntry) Name() string      { return e.entry.Name() }
 func (e osDirEntry) IsDir() bool       { return e.entry.IsDir() }
 func (e osDirEntry) Type() fs.FileMode { return e.entry.Type() }
 func (e osDirEntry) Info() (FileInfo, error) {
-	// os.FileInfo satisfies our FileInfo interface via structural typing
-	return e.entry.Info()
+	info, err := e.entry.Info()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get dir entry info: %w", err)
+	}
+	return info, nil
 }
 
 var _ FileSystem = (*OSFileSystem)(nil)
@@ -54,17 +58,25 @@ func New() *OSFileSystem {
 }
 
 func (f *OSFileSystem) Getwd() (string, error) {
-	return os.Getwd()
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+	return dir, nil
 }
 
 func (f *OSFileSystem) Stat(path string) (FileInfo, error) {
-	return os.Stat(path)
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat %s: %w", path, err)
+	}
+	return info, nil
 }
 
 func (f *OSFileSystem) ReadDir(path string) ([]DirEntry, error) {
 	entries, err := os.ReadDir(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read dir %s: %w", path, err)
 	}
 	result := make([]DirEntry, len(entries))
 	for i, e := range entries {
@@ -74,9 +86,15 @@ func (f *OSFileSystem) ReadDir(path string) ([]DirEntry, error) {
 }
 
 func (f *OSFileSystem) WriteFile(path string, data []byte, perm os.FileMode) error {
-	return os.WriteFile(path, data, perm)
+	if err := os.WriteFile(path, data, perm); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", path, err)
+	}
+	return nil
 }
 
 func (f *OSFileSystem) RemoveAll(path string) error {
-	return os.RemoveAll(path)
+	if err := os.RemoveAll(path); err != nil {
+		return fmt.Errorf("failed to remove %s: %w", path, err)
+	}
+	return nil
 }

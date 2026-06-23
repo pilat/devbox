@@ -11,18 +11,26 @@ import (
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/docker/compose/v5/pkg/compose"
 	"github.com/moby/moby/client"
-	"github.com/pilat/devbox/internal/manager"
 	"github.com/spf13/cobra"
+
+	"github.com/pilat/devbox/internal/manager"
+)
+
+const (
+	binName  = "devbox"
+	nameFlag = "--name"
 )
 
 var root = &cobra.Command{}
 
 var projectName string
 
-var dockerCLI *command.DockerCli
-var dockerClient client.APIClient
-var apiService api.Compose
-var mgr *manager.Manager
+var (
+	dockerCLI    *command.DockerCli
+	dockerClient client.APIClient
+	apiService   api.Compose
+	mgr          *manager.Manager
+)
 
 func main() {
 	for _, fn := range []func() error{
@@ -36,17 +44,24 @@ func main() {
 }
 
 func initCobra() error {
-	root.Use = "devbox"
+	root.Use = binName
 	root.SetErrPrefix("Error has occurred while executing the command:")
 
 	root.PersistentFlags().StringVarP(&projectName, "name", "n", "", "Project name")
 
-	_ = root.RegisterFlagCompletionFunc("name", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		projects, _ := mgr.List(toComplete)
-		return projects, cobra.ShellCompDirectiveNoFileComp
-	})
+	_ = root.RegisterFlagCompletionFunc(
+		"name",
+		func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+			projects, _ := mgr.List(toComplete)
+			return projects, cobra.ShellCompDirectiveNoFileComp
+		},
+	)
 
-	return root.Execute()
+	if err := root.Execute(); err != nil {
+		return fmt.Errorf("failed to execute command: %w", err)
+	}
+
+	return nil
 }
 
 func initDocker() error {
@@ -92,7 +107,9 @@ func newProgressCompose() (api.Compose, error) {
 	return svc, nil
 }
 
-func validArgsWrapper(f func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func validArgsWrapper(
+	f func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective),
+) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
 
@@ -108,7 +125,9 @@ func validArgsWrapper(f func(ctx context.Context, cmd *cobra.Command, args []str
 	}
 }
 
-func runWrapper(f func(ctx context.Context, cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) error {
+func runWrapper(
+	f func(ctx context.Context, cmd *cobra.Command, args []string) error,
+) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 		cmd.SilenceUsage = true
