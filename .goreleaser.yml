@@ -2,7 +2,6 @@ version: 2
 
 before:
   hooks:
-    - ./scripts/patch.sh
     - ./scripts/completions.sh
 
 report_sizes: true

@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/docker/cli/cli/streams"
-	"github.com/docker/compose/v2/cmd/formatter"
+	"github.com/docker/compose/v5/cmd/formatter"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )

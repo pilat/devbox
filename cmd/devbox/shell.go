@@ -7,9 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/client"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
@@ -100,23 +99,23 @@ func runShell(ctx context.Context, p *project.Project, serviceName string, noTty
 }
 
 func findContainerID(ctx context.Context, projectName, serviceName string) (string, error) {
-	list, err := dockerClient.ContainerList(ctx, container.ListOptions{
+	list, err := dockerClient.ContainerList(ctx, client.ContainerListOptions{
 		All:     true,
 		Filters: filterLabels(projectName, serviceName),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to list containers: %v", err)
+		return "", fmt.Errorf("failed to list containers: %w", err)
 	}
 
-	if len(list) == 0 {
+	if len(list.Items) == 0 {
 		return "", fmt.Errorf("service %q is not running", serviceName)
 	}
 
-	return list[0].ID, nil
+	return list.Items[0].ID, nil
 }
 
 func containerExec(ctx context.Context, containerID string, cmd []string) ([]byte, []byte, error) {
-	execResp, err := dockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+	execResp, err := dockerClient.ExecCreate(ctx, containerID, client.ExecCreateOptions{
 		Cmd:          cmd,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -125,7 +124,7 @@ func containerExec(ctx context.Context, containerID string, cmd []string) ([]byt
 		return nil, nil, fmt.Errorf("failed to create exec: %w", err)
 	}
 
-	execAttachResp, err := dockerClient.ContainerExecAttach(ctx, execResp.ID, container.ExecAttachOptions{})
+	execAttachResp, err := dockerClient.ExecAttach(ctx, execResp.ID, client.ExecAttachOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to attach to exec: %w", err)
 	}
@@ -150,23 +149,11 @@ func containerExec(ctx context.Context, containerID string, cmd []string) ([]byt
 	return stdout.Bytes(), stderr.Bytes(), nil
 }
 
-func filterLabels(projectName, serviceName string) filters.Args {
-	pairs := []filters.KeyValuePair{}
-
-	pairs = append(pairs, filters.KeyValuePair{
-		Key:   "label",
-		Value: fmt.Sprintf("com.docker.compose.project=%s", projectName),
-	})
-	pairs = append(pairs, filters.KeyValuePair{
-		Key:   "label",
-		Value: fmt.Sprintf("com.docker.compose.service=%s", serviceName),
-	})
-	pairs = append(pairs, filters.KeyValuePair{
-		Key:   "label",
-		Value: "com.docker.compose.container-number=1",
-	})
-
-	return filters.NewArgs(pairs...)
+func filterLabels(projectName, serviceName string) client.Filters {
+	return make(client.Filters).
+		Add("label", fmt.Sprintf("com.docker.compose.project=%s", projectName)).
+		Add("label", fmt.Sprintf("com.docker.compose.service=%s", serviceName)).
+		Add("label", "com.docker.compose.container-number=1")
 }
 
 func isTTYAvailable() bool {

@@ -8,8 +8,7 @@ import (
 	"time"
 
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/cli/cli/streams"
-	"github.com/docker/compose/v2/pkg/progress"
+	"github.com/docker/compose/v5/pkg/api"
 	"github.com/pilat/devbox/internal/app"
 	"github.com/pilat/devbox/internal/git"
 	"github.com/pilat/devbox/internal/project"
@@ -111,84 +110,65 @@ func runSourcesUpdate(ctx context.Context, p *project.Project) error {
 
 	fmt.Println("[*] Updating sources...")
 
-	updateSources := func(ctx context.Context) error {
-		cw := progress.ContextWriter(ctx)
-		for name := range p.Sources {
-			cw.Event(progress.Event{
-				ID:         "Source " + name,
-				StatusText: "Pending",
-			})
-		}
+	bus := newProgressBus()
+	bus.Start(ctx, "sources")
 
-		// Create a cancellable context for fail-fast behavior
-		ctx, cancelSync := context.WithCancel(ctx)
-		defer cancelSync()
+	err := syncSources(ctx, p,
+		func(name string) { bus.On(api.Resource{ID: name, Status: api.Working, Text: "Syncing"}) },
+		func(name string) { bus.On(api.Resource{ID: name, Status: api.Done, Text: "Synced"}) },
+		func(name string) { bus.On(api.Resource{ID: name, Status: api.Error, Text: "Failed"}) },
+	)
 
-		// Semaphore to limit concurrent goroutines to 4
-		const maxConcurrency = 4
-		sem := make(chan struct{}, maxConcurrency)
+	bus.Done("sources", err == nil)
 
-		var errCh = make(chan error, len(p.Sources))
-		for name, src := range p.Sources {
-			go func(name string, src project.SourceConfig) {
-				// Acquire semaphore
-				select {
-				case sem <- struct{}{}:
-					defer func() { <-sem }()
-				case <-ctx.Done():
-					errCh <- ctx.Err()
-					return
-				}
+	return err
+}
 
-				cw.Event(progress.Event{
-					ID:         "Source " + name,
-					StatusText: "Syncing",
-				})
+func syncSources(ctx context.Context, p *project.Project, onSyncing, onSynced, onFailed func(name string)) error {
+	ctx, cancelSync := context.WithCancel(ctx)
+	defer cancelSync()
 
-				repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
+	const maxConcurrency = 4
+	sem := make(chan struct{}, maxConcurrency)
 
-				g := git.New(repoDir)
-				err := g.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
-
-				if err != nil {
-					cw.Event(progress.Event{
-						ID:         "Source " + name,
-						StatusText: "Failed",
-						Status:     progress.Error,
-					})
-					cancelSync() // Fail-fast: cancel all other syncs
-				} else {
-					cw.Event(progress.Event{
-						ID:         "Source " + name,
-						StatusText: "Synced",
-						Status:     progress.Done,
-					})
-				}
-
-				errCh <- err
-			}(name, src)
-		}
-
-		var firstErr error
-		for i := 0; i < len(p.Sources); i++ {
-			if err := <-errCh; err != nil && firstErr == nil {
-				firstErr = err
+	errCh := make(chan error, len(p.Sources))
+	for name, src := range p.Sources {
+		go func(name string, src project.SourceConfig) {
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				errCh <- ctx.Err()
+				return
 			}
-		}
 
-		if firstErr != nil {
-			return fmt.Errorf("failed to sync source: %w", firstErr)
-		}
+			onSyncing(name)
 
-		return nil
+			repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
+
+			g := git.New(repoDir)
+			err := g.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
+			if err != nil {
+				onFailed(name)
+				cancelSync()
+			} else {
+				onSynced(name)
+			}
+
+			errCh <- err
+		}(name, src)
 	}
 
-	out := streams.NewOut(os.Stdout)
-	if err := progress.RunWithTitle(ctx, updateSources, out, "Updating sources"); err != nil {
-		return fmt.Errorf("failed to update sources: %w", err)
+	var firstErr error
+	for range p.Sources {
+		if err := <-errCh; err != nil && firstErr == nil {
+			firstErr = err
+		}
 	}
 
-	fmt.Println("")
+	if firstErr != nil {
+		return fmt.Errorf("failed to sync source: %w", firstErr)
+	}
 
 	return nil
 }

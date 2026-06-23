@@ -7,9 +7,10 @@ import (
 
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
-	"github.com/docker/compose/v2/pkg/api"
-	"github.com/docker/compose/v2/pkg/compose"
-	"github.com/docker/docker/client"
+	"github.com/docker/compose/v5/cmd/display"
+	"github.com/docker/compose/v5/pkg/api"
+	"github.com/docker/compose/v5/pkg/compose"
+	"github.com/moby/moby/client"
 	"github.com/pilat/devbox/internal/manager"
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ var root = &cobra.Command{}
 
 var projectName string
 
+var dockerCLI *command.DockerCli
 var dockerClient client.APIClient
 var apiService api.Compose
 var mgr *manager.Manager
@@ -48,7 +50,8 @@ func initCobra() error {
 }
 
 func initDocker() error {
-	dockerCLI, err := command.NewDockerCli()
+	var err error
+	dockerCLI, err = command.NewDockerCli()
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
@@ -60,11 +63,33 @@ func initDocker() error {
 
 	dockerClient = dockerCLI.Client()
 
-	apiService = compose.NewComposeService(dockerCLI)
+	apiService, err = compose.NewComposeService(dockerCLI)
+	if err != nil {
+		return fmt.Errorf("failed to create compose service: %w", err)
+	}
 
 	mgr = manager.New()
 
 	return nil
+}
+
+func newProgressBus() api.EventProcessor {
+	out := dockerCLI.Out()
+	if out.IsTerminal() {
+		return display.Full(out, out, false)
+	}
+
+	return display.Plain(out)
+}
+
+// Fresh bus per call: the tty progress writer never resets between operations.
+func newProgressCompose() (api.Compose, error) {
+	svc, err := compose.NewComposeService(dockerCLI, compose.WithEventProcessor(newProgressBus()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compose service: %w", err)
+	}
+
+	return svc, nil
 }
 
 func validArgsWrapper(f func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

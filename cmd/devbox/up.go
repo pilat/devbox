@@ -120,8 +120,13 @@ func runBuild(ctx context.Context, p *project.Project) error {
 		Quiet:    true,
 	}
 
+	svc, err := newProgressCompose()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("[*] Build services...")
-	if err := apiService.Build(ctx, p.Project, opts); err != nil {
+	if err := svc.Build(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to build project: %w", err)
 	}
 
@@ -144,8 +149,13 @@ func runUp(ctx context.Context, p *project.Project) error {
 		},
 	}
 
+	svc, err := newProgressCompose()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("[*] Up services...")
-	if err := apiService.Up(ctx, p.Project, opts); err != nil {
+	if err := svc.Up(ctx, p.Project, opts); err != nil {
 		return fmt.Errorf("failed to start project: %w", err)
 	}
 

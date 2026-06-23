@@ -41,8 +41,13 @@ func runDown(ctx context.Context, p *project.Project, deleteVolumes bool) error 
 		Volumes:       deleteVolumes,
 	}
 
+	svc, err := newProgressCompose()
+	if err != nil {
+		return err
+	}
+
 	fmt.Println("[*] Down services...")
-	if err := apiService.Down(ctx, p.Name, opts); err != nil {
+	if err := svc.Down(ctx, p.Name, opts); err != nil {
 		return fmt.Errorf("failed to stop project: %w", err)
 	}
 	fmt.Println("")

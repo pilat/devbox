@@ -17,7 +17,7 @@ import (
 	"golang.org/x/net/idna"
 
 	"github.com/compose-spec/compose-go/v2/types"
-	"github.com/docker/compose/v2/pkg/api"
+	"github.com/docker/compose/v5/pkg/api"
 )
 
 // Replacement of composer service with our state keeper. Another extended service (with client inside) will be used.
