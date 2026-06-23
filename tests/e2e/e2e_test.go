@@ -329,7 +329,7 @@ func (s *E2ESuite) Test30_InfoOperations() {
 	// Test updating sources
 	stdout, _, err := s.devbox("update", "--name", "test-app")
 	s.Require().NoError(err)
-	s.Contains(stdout, "Source service-1  Synced")
+	s.Contains(stdout, "service-1 Synced")
 
 	// Test info after update
 	stdout, _, err = s.devbox("info", "--name", "test-app")

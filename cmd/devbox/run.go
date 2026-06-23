@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/docker/compose/v2/pkg/api"
+	"github.com/docker/compose/v5/pkg/api"
 	"github.com/pilat/devbox/internal/project"
 	"github.com/spf13/cobra"
 )
