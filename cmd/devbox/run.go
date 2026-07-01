@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/spf13/cobra"
@@ -91,7 +92,7 @@ func runRun(ctx context.Context, p *project.Project, command string, args []stri
 	case scenario.Tty != nil:
 		tty = *scenario.Tty
 	default:
-		tty = isTTYAvailable()
+		tty = isTTYAvailable(os.Stdin)
 	}
 
 	opts := project.RunOptions{

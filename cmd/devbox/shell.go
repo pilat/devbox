@@ -11,6 +11,7 @@ import (
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/client"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 
 	"github.com/pilat/devbox/internal/project"
 )
@@ -84,7 +85,7 @@ func runShell(ctx context.Context, p *project.Project, serviceName string, noTty
 	if noTtyFlag {
 		tty = false
 	} else {
-		tty = isTTYAvailable()
+		tty = isTTYAvailable(os.Stdin)
 	}
 
 	opts := project.RunOptions{
@@ -160,11 +161,6 @@ func filterLabels(projectName, serviceName string) client.Filters {
 		Add("label", "com.docker.compose.container-number=1")
 }
 
-func isTTYAvailable() bool {
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-
-	return (stat.Mode() & os.ModeCharDevice) != 0
+func isTTYAvailable(f *os.File) bool {
+	return term.IsTerminal(int(f.Fd()))
 }
