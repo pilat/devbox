@@ -1,0 +1,16 @@
+x-devbox-sources:
+  service-1:
+    url: "SOURCE_1_REPO"
+    branch: main
+  service-2:
+    url: "SOURCE_2_REPO"
+    branch: main
+services:
+  web:
+    image: nginx:alpine
+    stop_grace_period: 0s
+    volumes:
+      - ./sources/service-1:/app
+      - ./sources/service-2:/app/shared
+    ports:
+      - "8090:80"

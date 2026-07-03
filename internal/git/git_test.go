@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -172,6 +173,135 @@ func TestPull(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// ============================================================================
+// Excludes (git clean -e) tests
+// ============================================================================
+
+func TestResetWithExcludes(t *testing.T) {
+	tests := []struct {
+		name          string
+		excludes      []string
+		removeIgnored bool
+		wantCleanArgs []any
+	}{
+		{
+			name:          "single exclude with -fdx",
+			excludes:      []string{"cmd/service-a/shared"},
+			removeIgnored: true,
+			wantCleanArgs: []any{"-C", "/tmp/test", "clean", "-fdx", "-e", "cmd/service-a/shared"},
+		},
+		{
+			name:          "single exclude with -fd",
+			excludes:      []string{"cmd/service-a/shared"},
+			removeIgnored: false,
+			wantCleanArgs: []any{"-C", "/tmp/test", "clean", "-fd", "-e", "cmd/service-a/shared"},
+		},
+		{
+			name:          "two excludes keep separate -e in slice order",
+			excludes:      []string{"a", "b"},
+			removeIgnored: true,
+			wantCleanArgs: []any{"-C", "/tmp/test", "clean", "-fdx", "-e", "a", "-e", "b"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			runner := NewMockCommandRunner(t)
+			runner.EXPECT().Run(mock.Anything, "git", "-C", "/tmp/test", "reset", "--hard").Return("", nil)
+			runner.EXPECT().Run(mock.Anything, "git", tt.wantCleanArgs...).Return("", nil)
+
+			s := &svc{targetPath: "/tmp/test", runner: runner, excludes: tt.excludes}
+			if err := s.reset(context.Background(), tt.removeIgnored); err != nil {
+				t.Errorf("reset() error = %v", err)
+			}
+		})
+	}
+}
+
+// TestSyncWithExcludes proves both git clean invocations Sync makes on an existing repo
+// (reset's -fdx and the trailing Pull's -fd) receive the excludes.
+func TestSyncWithExcludes(t *testing.T) {
+	dir := t.TempDir()
+	targetPath := filepath.Join(dir, "repo")
+	_ = os.MkdirAll(filepath.Join(targetPath, ".git"), 0o755)
+
+	exclude := "cmd/service-a/shared"
+
+	runner := NewMockCommandRunner(t)
+	// Sync's reset (removeIgnored=true)
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil).Once()
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fdx", "-e", exclude).Return("", nil).Once()
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "sparse-checkout", "disable").Return("", nil)
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "checkout", "main").Return("", nil)
+	// Trailing Pull's reset (removeIgnored=false)
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "reset", "--hard").Return("", nil).Once()
+	runner.EXPECT().Run(mock.Anything, "git", "-C", targetPath, "clean", "-fd", "-e", exclude).Return("", nil).Once()
+	runner.EXPECT().RunWithTTY(mock.Anything, "git", "-C", targetPath, "pull", "--rebase").Return("", nil)
+
+	s := &svc{targetPath: targetPath, runner: runner, excludes: []string{exclude}}
+	if err := s.Sync(context.Background(), "https://github.com/org/repo.git", "main", nil); err != nil {
+		t.Errorf("Sync() error = %v", err)
+	}
+}
+
+// TestGitCleanExcludePreservesMountpoint runs real `git clean -fdx -e <path>` against a temp
+// repo to prove the computed exclude string actually anchors: the excluded dir survives while
+// sibling untracked cruft is removed. A wrong string format would slip past the mock tests but
+// fail here.
+func TestGitCleanExcludePreservesMountpoint(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not installed")
+	}
+
+	dir := t.TempDir()
+	runGit := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_CONFIG_GLOBAL=/dev/null",
+			"GIT_CONFIG_SYSTEM=/dev/null",
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@t",
+			"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@t",
+		)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	trackedDir := filepath.Join(dir, "cmd", "service-a")
+	if err := os.MkdirAll(trackedDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(trackedDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit("init")
+	runGit("add", ".")
+	runGit("commit", "-m", "init")
+
+	mountpoint := filepath.Join(trackedDir, "shared")
+	if err := os.MkdirAll(mountpoint, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(mountpoint, "keep.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stale := filepath.Join(trackedDir, "stale.tmp")
+	if err := os.WriteFile(stale, []byte("y"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	runGit("clean", "-fdx", "-e", "cmd/service-a/shared")
+
+	if _, err := os.Stat(mountpoint); err != nil {
+		t.Errorf("excluded mountpoint should survive clean: %v", err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Errorf("stale.tmp should have been removed by clean, stat err = %v", err)
 	}
 }
 

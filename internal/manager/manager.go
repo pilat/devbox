@@ -446,7 +446,7 @@ func (m *Manager) matchSourcePath(
 
 	// Check if cwd matches the service's source path:
 	// - If service uses root (serviceSubpath=""), cwd must also be at root
-	// - If service uses subpath (e.g., "cmd/risk-engine"), cwd must be inside it
+	// - If service uses subpath (e.g., "cmd/app"), cwd must be inside it
 	if !cwdMatchesServiceSubpath(cwdRelPath, serviceSubpath) {
 		return "", "", false
 	}

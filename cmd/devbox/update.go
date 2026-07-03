@@ -131,6 +131,8 @@ func syncSources(ctx context.Context, p *project.Project, onSyncing, onSynced, o
 	ctx, cancelSync := context.WithCancel(ctx)
 	defer cancelSync()
 
+	excludes := p.SourceCleanExcludes()
+
 	const maxConcurrency = 4
 	sem := make(chan struct{}, maxConcurrency)
 
@@ -149,7 +151,7 @@ func syncSources(ctx context.Context, p *project.Project, onSyncing, onSynced, o
 
 			repoDir := filepath.Join(p.WorkingDir, app.SourcesDir, name)
 
-			g := git.New(repoDir)
+			g := git.New(repoDir, excludes[name]...)
 			err := g.Sync(ctx, src.URL, src.Branch, src.SparseCheckout)
 			if err != nil {
 				onFailed(name)
