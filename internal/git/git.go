@@ -23,12 +23,16 @@ var _ Service = (*svc)(nil)
 type svc struct {
 	targetPath string
 	runner     CommandRunner
+	excludes   []string
 }
 
-func New(targetFolder string) Service {
+// New returns a git Service for targetFolder. Any excludes are passed to `git clean` as
+// `-e <pattern>` so live nested bind-mount points are preserved during source sync.
+func New(targetFolder string, excludes ...string) Service {
 	return &svc{
 		targetPath: targetFolder,
 		runner:     &defaultRunner{},
+		excludes:   excludes,
 	}
 }
 
@@ -178,7 +182,12 @@ func (s *svc) reset(ctx context.Context, removeIgnored bool) error {
 		cleanFlags = "-fdx"
 	}
 
-	out, err = s.runner.Run(ctx, "git", "-C", s.targetPath, "clean", cleanFlags)
+	cleanArgs := []string{"-C", s.targetPath, "clean", cleanFlags}
+	for _, e := range s.excludes {
+		cleanArgs = append(cleanArgs, "-e", e)
+	}
+
+	out, err = s.runner.Run(ctx, "git", cleanArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to clean: %s %w", out, err)
 	}

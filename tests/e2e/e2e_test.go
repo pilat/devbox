@@ -16,16 +16,21 @@ import (
 
 type E2ESuite struct {
 	suite.Suite
-	home         string
-	projectDir   string
-	tempDir      string
-	manifestRepo string
-	manifestDir  string
-	source1Repo  string
-	source1Dir   string
-	hostsFile    string
-	fixturesDir  string
-	origDir      string
+	home               string
+	projectDir         string
+	tempDir            string
+	manifestRepo       string
+	manifestDir        string
+	source1Repo        string
+	source1Dir         string
+	hostsFile          string
+	fixturesDir        string
+	origDir            string
+	nestedProjectDir   string
+	nestedManifestRepo string
+	nestedManifestDir  string
+	source2Repo        string
+	source2Dir         string
 }
 
 func TestE2ESuite(t *testing.T) {
@@ -41,6 +46,7 @@ func (s *E2ESuite) SetupSuite() {
 	s.home, err = os.UserHomeDir()
 	s.Require().NoError(err)
 	s.projectDir = filepath.Join(s.home, ".devbox", "test-app")
+	s.nestedProjectDir = filepath.Join(s.home, ".devbox", "nested-app")
 
 	s.fixturesDir = filepath.Join(s.origDir, "fixtures")
 
@@ -57,11 +63,18 @@ func (s *E2ESuite) SetupSuite() {
 	s.manifestDir = filepath.Join(s.tempDir, "manifest")
 	s.source1Repo = filepath.Join(s.tempDir, "source-1.git")
 	s.source1Dir = filepath.Join(s.tempDir, "source-1")
+	s.nestedManifestRepo = filepath.Join(s.tempDir, "manifest-nested.git")
+	s.nestedManifestDir = filepath.Join(s.tempDir, "manifest-nested")
+	s.source2Repo = filepath.Join(s.tempDir, "source-2.git")
+	s.source2Dir = filepath.Join(s.tempDir, "source-2")
 	s.hostsFile = filepath.Join(s.tempDir, "hosts")
 
-	// Clean previous test-app project if exists (only this specific project)
+	// Clean previous test projects if they exist (only these specific projects)
 	if _, err := os.Stat(s.projectDir); err == nil {
 		_ = os.RemoveAll(s.projectDir)
+	}
+	if _, err := os.Stat(s.nestedProjectDir); err == nil {
+		_ = os.RemoveAll(s.nestedProjectDir)
 	}
 
 	// Setup manifest repo
@@ -103,6 +116,8 @@ func (s *E2ESuite) SetupSuite() {
 	s.runGit(s.source1Dir, "push", "-u", "origin", "main")
 	s.runGit(s.source1Repo, "symbolic-ref", "HEAD", "refs/heads/main")
 
+	s.setupNestedFixtures()
+
 	// Create hosts file
 	f, err := os.Create(s.hostsFile)
 	s.Require().NoError(err)
@@ -111,12 +126,14 @@ func (s *E2ESuite) SetupSuite() {
 
 func (s *E2ESuite) TearDownSuite() {
 	// Stop and remove containers
-	out, _ := exec.Command("docker", "ps", "-aq", "--filter", "name=test-app").Output()
-	containers := strings.Split(strings.TrimSpace(string(out)), "\n")
-	for _, c := range containers {
-		if c != "" {
-			_ = exec.Command("docker", "stop", "-t0", c).Run()
-			_ = exec.Command("docker", "rm", "-f", c).Run()
+	for _, name := range []string{"test-app", "nested-app"} {
+		out, _ := exec.Command("docker", "ps", "-aq", "--filter", "name="+name).Output()
+		containers := strings.Split(strings.TrimSpace(string(out)), "\n")
+		for _, c := range containers {
+			if c != "" {
+				_ = exec.Command("docker", "stop", "-t0", c).Run()
+				_ = exec.Command("docker", "rm", "-f", c).Run()
+			}
 		}
 	}
 
@@ -126,6 +143,9 @@ func (s *E2ESuite) TearDownSuite() {
 	// Clean directories
 	if s.projectDir != "" {
 		_ = os.RemoveAll(s.projectDir)
+	}
+	if s.nestedProjectDir != "" {
+		_ = os.RemoveAll(s.nestedProjectDir)
 	}
 	if s.tempDir != "" {
 		_ = os.RemoveAll(s.tempDir)
@@ -158,6 +178,43 @@ func (s *E2ESuite) copyDir(src, dst string) {
 			s.Require().NoError(os.WriteFile(dstPath, data, 0o644))
 		}
 	}
+}
+
+// setupNestedFixtures builds a second source repo and a "nested" manifest whose web service mounts
+// service-1 at /app and the foreign service-2 nested at /app/shared. Once the stack is up,
+// Docker materializes a live mountpoint at sources/service-1/shared — the exact shape that
+// used to make source-sync's git clean fail with "Permission denied".
+func (s *E2ESuite) setupNestedFixtures() {
+	// Source 2 reuses the service-1 fixture content; only its role (foreign nested mount) matters.
+	s.runGit("", "init", "--bare", s.source2Repo)
+	s.Require().NoError(os.Mkdir(s.source2Dir, 0o755))
+	s.copyDir(filepath.Join(s.fixturesDir, "service-1"), s.source2Dir)
+	s.runGit(s.source2Dir, "init")
+	s.runGit(s.source2Dir, "remote", "add", "origin", s.source2Repo)
+	s.runGit(s.source2Dir, "add", ".")
+	s.runGit(s.source2Dir, "commit", "-m", "Initial commit")
+	s.runGit(s.source2Dir, "branch", "-M", "main")
+	s.runGit(s.source2Dir, "push", "-u", "origin", "main")
+	s.runGit(s.source2Repo, "symbolic-ref", "HEAD", "refs/heads/main")
+
+	s.runGit("", "init", "--bare", s.nestedManifestRepo)
+	s.Require().NoError(os.Mkdir(s.nestedManifestDir, 0o755))
+	s.runGit(s.nestedManifestDir, "init")
+	s.copyDir(filepath.Join(s.fixturesDir, "manifest-nested"), s.nestedManifestDir)
+
+	composeFile := filepath.Join(s.nestedManifestDir, "docker-compose.yml")
+	content, err := os.ReadFile(composeFile)
+	s.Require().NoError(err)
+	content = []byte(strings.ReplaceAll(string(content), "SOURCE_1_REPO", s.source1Repo))
+	content = []byte(strings.ReplaceAll(string(content), "SOURCE_2_REPO", s.source2Repo))
+	s.Require().NoError(os.WriteFile(composeFile, content, 0o644))
+
+	s.runGit(s.nestedManifestDir, "remote", "add", "origin", s.nestedManifestRepo)
+	s.runGit(s.nestedManifestDir, "add", ".")
+	s.runGit(s.nestedManifestDir, "commit", "-m", "Initial commit")
+	s.runGit(s.nestedManifestDir, "branch", "-M", "main")
+	s.runGit(s.nestedManifestDir, "push", "-u", "origin", "main")
+	s.runGit(s.nestedManifestRepo, "symbolic-ref", "HEAD", "refs/heads/main")
 }
 
 func (s *E2ESuite) devbox(args ...string) (stdout, stderr string, err error) {
@@ -215,6 +272,11 @@ func (s *E2ESuite) waitFor(condition func() bool, timeout time.Duration) bool {
 
 func (s *E2ESuite) checkContainersUp(count int) bool {
 	out, _ := exec.Command("docker", "ps", "--filter", "name=test-app").Output()
+	return strings.Count(string(out), "Up") == count
+}
+
+func (s *E2ESuite) checkContainersUpNamed(name string, count int) bool {
+	out, _ := exec.Command("docker", "ps", "--filter", "name="+name).Output()
 	return strings.Count(string(out), "Up") == count
 }
 
@@ -521,6 +583,45 @@ func (s *E2ESuite) Test57_MountForVolumeOperations() {
 	s.True(s.waitFor(func() bool {
 		return s.checkServiceResponse("http://localhost:8081", "Hello, World from service 1 updated")
 	}, 30*time.Second), "Service should return updated response")
+}
+
+// ============================================================================
+// Test 58: Update while a live cross-source nested bind mount is active
+// ============================================================================
+
+func (s *E2ESuite) Test58_UpdateWithLiveNestedMount() {
+	s.devboxRun("destroy", "--name", "nested-app")
+	_ = os.RemoveAll(s.nestedProjectDir)
+
+	s.devboxRun("init", s.nestedManifestRepo, "--name", "nested-app", "--branch", "main")
+
+	stdout, _, err := s.devbox("update", "--name", "nested-app")
+	s.Require().NoError(err)
+	s.Contains(stdout, "service-1 Synced")
+	s.Contains(stdout, "service-2 Synced")
+
+	_, _, err = s.devbox("up", "--name", "nested-app")
+	s.Require().NoError(err)
+	s.True(s.waitFor(func() bool { return s.checkContainersUpNamed("nested-app", 1) }, 30*time.Second),
+		"nested-app web container should be running")
+
+	// Docker materialized the foreign source-2 as a live mountpoint inside source-1's checkout.
+	mountpoint := filepath.Join(s.nestedProjectDir, "sources", "service-1", "shared")
+	_, err = os.Stat(mountpoint)
+	s.Require().NoError(err, "nested mountpoint should exist while the stack is up")
+
+	// The regression: updating sources while the stack is up used to fail here because git clean
+	// tried to rmdir the live mountpoint. It must now succeed and leave the mount untouched.
+	stdout, stderr, err := s.devbox("update", "--name", "nested-app")
+	s.Require().NoError(err, "update while stack is up must not fail")
+	s.Contains(stdout, "service-1 Synced")
+	s.NotContains(stdout+stderr, "Permission denied")
+
+	_, err = os.Stat(mountpoint)
+	s.Require().NoError(err, "nested mountpoint should survive the update")
+	s.True(s.checkContainersUpNamed("nested-app", 1), "stack should still be up after update")
+
+	s.devboxRun("destroy", "--name", "nested-app")
 }
 
 // ============================================================================
