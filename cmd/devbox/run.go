@@ -12,13 +12,17 @@ import (
 )
 
 func init() {
+	root.AddCommand(newRunCmd())
+}
+
+func newRunCmd() *cobra.Command {
 	var noTty bool
 
 	cmd := &cobra.Command{
 		Use:   "run <scenario>",
 		Short: "Run scenario defined in devbox project",
 		Long:  "You can pass additional arguments to the scenario",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		ValidArgsFunction: validArgsWrapper(
 			func(ctx context.Context, cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 				p, err := mgr.AutodetectProject(ctx, projectName)
@@ -40,14 +44,9 @@ func init() {
 				return fmt.Errorf("failed to detect project: %w", err)
 			}
 
-			command := args[0]
-			if len(args) > 1 {
-				args = args[1:]
-			} else {
-				args = []string{}
-			}
+			scenario, passthrough := splitScenarioArgs(args)
 
-			if err := runRun(ctx, p, command, args, noTty); err != nil {
+			if err := runRun(ctx, p, scenario, passthrough, noTty); err != nil {
 				return fmt.Errorf("failed to run scenario: %w", err)
 			}
 
@@ -58,7 +57,21 @@ func init() {
 	cmd.Flags().BoolVarP(&noTty, "no-tty", "t", false, "Do not allocate a pseudo-TTY")
 	cmd.Flags().SetInterspersed(false)
 
-	root.AddCommand(cmd)
+	return cmd
+}
+
+// splitScenarioArgs returns the scenario name and its forwarded args, consuming one leading "--".
+func splitScenarioArgs(args []string) (scenario string, passthrough []string) {
+	scenario = args[0]
+	passthrough = args[1:]
+
+	// Interspersing is off, so pflag never consumes the "--"; drop one leading
+	// separator so `run e2e -- --tag` and `run e2e --tag` forward the same args.
+	if len(passthrough) > 0 && passthrough[0] == "--" {
+		passthrough = passthrough[1:]
+	}
+
+	return scenario, passthrough
 }
 
 func runRun(ctx context.Context, p *project.Project, command string, args []string, noTtyFlag bool) error {
