@@ -26,6 +26,9 @@ devbox run test
 # Run a test scenario with arguments
 devbox run test --verbose --suite=api
 
+# The same, using -- as an explicit separator (optional; it is consumed, not forwarded)
+devbox run test -- --verbose --suite=api
+
 # Run a scenario in a specific project
 devbox --name project-name run test
 ```
