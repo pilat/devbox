@@ -12,12 +12,32 @@ func TestSplitScenarioArgs(t *testing.T) {
 		wantScenario    string
 		wantPassthrough []string
 	}{
-		{name: "flag only", args: []string{"e2e", "--tag", "foo"}, wantScenario: "e2e", wantPassthrough: []string{"--tag", "foo"}},
-		{name: "separator stripped", args: []string{"e2e", "--", "--tag", "foo"}, wantScenario: "e2e", wantPassthrough: []string{"--tag", "foo"}},
+		{
+			name:            "flag only",
+			args:            []string{"e2e", "--tag", "foo"},
+			wantScenario:    "e2e",
+			wantPassthrough: []string{"--tag", "foo"},
+		},
+		{
+			name:            "separator stripped",
+			args:            []string{"e2e", "--", "--tag", "foo"},
+			wantScenario:    "e2e",
+			wantPassthrough: []string{"--tag", "foo"},
+		},
 		{name: "no args", args: []string{"e2e"}, wantScenario: "e2e", wantPassthrough: nil},
 		{name: "bare separator", args: []string{"e2e", "--"}, wantScenario: "e2e", wantPassthrough: nil},
-		{name: "double separator keeps second", args: []string{"e2e", "--", "--"}, wantScenario: "e2e", wantPassthrough: []string{"--"}},
-		{name: "later separator untouched", args: []string{"e2e", "--tag", "--", "foo"}, wantScenario: "e2e", wantPassthrough: []string{"--tag", "--", "foo"}},
+		{
+			name:            "double separator keeps second",
+			args:            []string{"e2e", "--", "--"},
+			wantScenario:    "e2e",
+			wantPassthrough: []string{"--"},
+		},
+		{
+			name:            "later separator untouched",
+			args:            []string{"e2e", "--tag", "--", "foo"},
+			wantScenario:    "e2e",
+			wantPassthrough: []string{"--tag", "--", "foo"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -43,7 +63,11 @@ func TestRunCmdArgsContract(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "flag only", argv: []string{"e2e", "--tag", "foo"}, wantArgs: []string{"e2e", "--tag", "foo"}},
-		{name: "explicit separator", argv: []string{"e2e", "--", "--tag", "foo"}, wantArgs: []string{"e2e", "--", "--tag", "foo"}},
+		{
+			name:     "explicit separator",
+			argv:     []string{"e2e", "--", "--tag", "foo"},
+			wantArgs: []string{"e2e", "--", "--tag", "foo"},
+		},
 		{name: "scenario only", argv: []string{"e2e"}, wantArgs: []string{"e2e"}},
 		{name: "no scenario", argv: []string{}, wantErr: true},
 	}
