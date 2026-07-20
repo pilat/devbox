@@ -105,4 +105,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 DevBox is licensed under the MIT License.  
-© 2025 Vladimir Urushev
+© 2026 Vladimir Urushev
