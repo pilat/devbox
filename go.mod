@@ -3,12 +3,12 @@ module github.com/pilat/devbox
 go 1.26.4
 
 require (
-	github.com/compose-spec/compose-go/v2 v2.13.0
-	github.com/docker/cli v29.6.2+incompatible
+	github.com/compose-spec/compose-go/v2 v2.14.0
+	github.com/docker/cli v29.7.1+incompatible
 	github.com/docker/compose/v5 v5.3.1
-	github.com/jedib0t/go-pretty/v6 v6.8.2
+	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/moby/moby/api v1.55.0
-	github.com/moby/moby/client v0.5.0
+	github.com/moby/moby/client v0.5.1
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.57.0
