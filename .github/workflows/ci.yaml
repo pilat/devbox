@@ -25,12 +25,12 @@ jobs:
       - name: Lint (linux)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.1
+          version: v2.13.2
 
       - name: Lint (darwin)
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.13.1
+          version: v2.13.2
         env:
           GOOS: darwin
 
