@@ -74,7 +74,7 @@ func New(ctx context.Context, projectName string, profiles []string) (*Project, 
 		return nil, fmt.Errorf("failed to load compose project options: %w", err)
 	}
 
-	project, err := cli.ProjectFromOptions(ctx, o)
+	project, err := o.LoadProject(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load compose project: %w", err)
 	}
