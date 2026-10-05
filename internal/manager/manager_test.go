@@ -544,8 +544,10 @@ func TestAutodetectSource_ExplicitSource(t *testing.T) {
 			Services: types.Services{
 				"api": {
 					Name: "api",
-					Volumes: []types.ServiceVolumeConfig{
-						{Source: "/home/user/.devbox/myproject/sources/backend"},
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							{Source: "/home/user/.devbox/myproject/sources/backend"},
+						},
 					},
 				},
 			},
@@ -753,8 +755,10 @@ func TestDetectSourceByGitRemote(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Source: "/home/user/.devbox/myproject/sources/backend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Source: "/home/user/.devbox/myproject/sources/backend"},
+								},
 							},
 						},
 					},
@@ -786,8 +790,10 @@ func TestDetectSourceByGitRemote(t *testing.T) {
 					WorkingDir: "/home/user/.devbox/myproject",
 					Services: types.Services{
 						"api": {
-							Name:  "api",
-							Build: &types.BuildConfig{Context: "/home/user/.devbox/myproject/sources/backend"},
+							Name: "api",
+							WorkloadSpec: types.WorkloadSpec{
+								Build: &types.BuildConfig{Context: "/home/user/.devbox/myproject/sources/backend"},
+							},
 						},
 					},
 				},
@@ -876,8 +882,10 @@ func TestDetectSourceByGitRemote(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Source: "/home/user/code/backend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Source: "/home/user/code/backend"},
+								},
 							},
 						},
 					},
@@ -912,8 +920,10 @@ func TestDetectSourceByGitRemote(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Source: "/home/user/code/backend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Source: "/home/user/code/backend"},
+								},
 							},
 						},
 					},
@@ -1008,8 +1018,10 @@ func TestGetLocalMountCandidates(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
+								},
 							},
 						},
 					},
@@ -1029,8 +1041,10 @@ func TestGetLocalMountCandidates(t *testing.T) {
 					WorkingDir: "/home/user/.devbox/myproject",
 					Services: types.Services{
 						"api": {
-							Name:  "api",
-							Build: &types.BuildConfig{Context: "/home/user/.devbox/myproject/sources/backend"},
+							Name: "api",
+							WorkloadSpec: types.WorkloadSpec{
+								Build: &types.BuildConfig{Context: "/home/user/.devbox/myproject/sources/backend"},
+							},
 						},
 					},
 				},
@@ -1050,8 +1064,10 @@ func TestGetLocalMountCandidates(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
+								},
 							},
 						},
 					},
@@ -1075,9 +1091,11 @@ func TestGetLocalMountCandidates(t *testing.T) {
 					Services: types.Services{
 						"api": {
 							Name: "api",
-							Volumes: []types.ServiceVolumeConfig{
-								{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
-								{Type: "bind", Source: "/home/user/.devbox/myproject/sources/frontend"},
+							ContainerSpec: types.ContainerSpec{
+								Volumes: []types.ServiceVolumeConfig{
+									{Type: "bind", Source: "/home/user/.devbox/myproject/sources/backend"},
+									{Type: "bind", Source: "/home/user/.devbox/myproject/sources/frontend"},
+								},
 							},
 						},
 					},
