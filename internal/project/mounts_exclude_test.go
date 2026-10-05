@@ -25,10 +25,12 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "cross-source nested dir mount is excluded, .env file mount is not",
 			services: types.Services{
 				"service-a": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "service-a", "cmd", "service-a"), "/app"),
-						bind(filepath.Join(root, "envs", "service-a", ".env"), "/app/.env"),
-						bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "service-a", "cmd", "service-a"), "/app"),
+							bind(filepath.Join(root, "envs", "service-a", ".env"), "/app/.env"),
+							bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+						},
 					},
 				},
 			},
@@ -40,9 +42,11 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "self-nested same source is not excluded",
 			services: types.Services{
 				"service-b": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "service-b"), "/app"),
-						bind(filepath.Join(sourcesRoot, "service-b", "cmd", "service-b"), "/app/cmd/service-b"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "service-b"), "/app"),
+							bind(filepath.Join(sourcesRoot, "service-b", "cmd", "service-b"), "/app/cmd/service-b"),
+						},
 					},
 				},
 			},
@@ -52,9 +56,11 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "file/config mount only is not excluded",
 			services: types.Services{
 				"svc": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "svc"), "/app"),
-						bind(filepath.Join(root, "envs", "svc", ".env"), "/app/.env"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "svc"), "/app"),
+							bind(filepath.Join(root, "envs", "svc", ".env"), "/app/.env"),
+						},
 					},
 				},
 			},
@@ -64,9 +70,11 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "locally-mounted parent (source outside sources/) is not excluded",
 			services: types.Services{
 				"service-a": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind("/Users/me/local/service-a", "/app"),
-						bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind("/Users/me/local/service-a", "/app"),
+							bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+						},
 					},
 				},
 			},
@@ -76,10 +84,12 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "multiple cross-source children under one source are sorted",
 			services: types.Services{
 				"foo": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "foo"), "/app"),
-						bind(filepath.Join(sourcesRoot, "zebra"), "/app/zebra"),
-						bind(filepath.Join(sourcesRoot, "alpha"), "/app/alpha"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "foo"), "/app"),
+							bind(filepath.Join(sourcesRoot, "zebra"), "/app/zebra"),
+							bind(filepath.Join(sourcesRoot, "alpha"), "/app/alpha"),
+						},
 					},
 				},
 			},
@@ -91,16 +101,20 @@ func TestNestedForeignMountExcludes(t *testing.T) {
 			name: "two services feeding one source key are merged, sorted and deduped",
 			services: types.Services{
 				"svc-a": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "foo"), "/app"),
-						bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
-						bind(filepath.Join(sourcesRoot, "extra"), "/app/extra"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "foo"), "/app"),
+							bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+							bind(filepath.Join(sourcesRoot, "extra"), "/app/extra"),
+						},
 					},
 				},
 				"svc-b": {
-					Volumes: []types.ServiceVolumeConfig{
-						bind(filepath.Join(sourcesRoot, "foo"), "/app"),
-						bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+					ContainerSpec: types.ContainerSpec{
+						Volumes: []types.ServiceVolumeConfig{
+							bind(filepath.Join(sourcesRoot, "foo"), "/app"),
+							bind(filepath.Join(sourcesRoot, "shared"), "/app/shared"),
+						},
 					},
 				},
 			},
