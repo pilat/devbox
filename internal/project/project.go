@@ -328,6 +328,7 @@ func applyDefaultLogging(p *Project) error {
 		}
 
 		svc.Logging = &types.LoggingConfig{
+			Driver: "json-file",
 			Options: map[string]string{
 				"max-size": "10m",
 				"max-file": "1",
