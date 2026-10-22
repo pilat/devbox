@@ -43,11 +43,6 @@ func (s *E2ESuite) SetupSuite() {
 	s.origDir, err = os.Getwd()
 	s.Require().NoError(err)
 
-	s.home, err = os.UserHomeDir()
-	s.Require().NoError(err)
-	s.projectDir = filepath.Join(s.home, ".devbox", "test-app")
-	s.nestedProjectDir = filepath.Join(s.home, ".devbox", "nested-app")
-
 	s.fixturesDir = filepath.Join(s.origDir, "fixtures")
 
 	// Clean up leftover temp directories from previous runs
@@ -58,6 +53,10 @@ func (s *E2ESuite) SetupSuite() {
 
 	s.tempDir, err = os.MkdirTemp("", "devbox-e2e-")
 	s.Require().NoError(err)
+	s.home = filepath.Join(s.tempDir, "home")
+	s.Require().NoError(os.MkdirAll(s.home, 0o755))
+	s.projectDir = filepath.Join(s.home, ".devbox", "test-app")
+	s.nestedProjectDir = filepath.Join(s.home, ".devbox", "nested-app")
 
 	s.manifestRepo = filepath.Join(s.tempDir, "manifest.git")
 	s.manifestDir = filepath.Join(s.tempDir, "manifest")
@@ -154,6 +153,12 @@ func (s *E2ESuite) TearDownSuite() {
 
 func (s *E2ESuite) runGit(dir string, args ...string) {
 	cmd := exec.Command("git", args...)
+	cmd.Env = append(os.Environ(),
+		"GIT_CONFIG_GLOBAL=/dev/null",
+		"GIT_CONFIG_SYSTEM=/dev/null",
+		"GIT_AUTHOR_NAME=CI", "GIT_AUTHOR_EMAIL=ci@test.test",
+		"GIT_COMMITTER_NAME=CI", "GIT_COMMITTER_EMAIL=ci@test.test",
+	)
 	if dir != "" {
 		cmd.Dir = dir
 	}
@@ -219,7 +224,7 @@ func (s *E2ESuite) setupNestedFixtures() {
 
 func (s *E2ESuite) devbox(args ...string) (stdout, stderr string, err error) {
 	cmd := exec.Command("devbox", args...)
-	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
+	cmd.Env = append(os.Environ(), "HOME="+s.home, "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 
 	outBytes, err := cmd.Output()
 	var errBytes []byte
@@ -233,7 +238,7 @@ func (s *E2ESuite) devbox(args ...string) (stdout, stderr string, err error) {
 func (s *E2ESuite) devboxInDir(dir string, args ...string) (stdout, stderr string, err error) {
 	cmd := exec.Command("devbox", args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
+	cmd.Env = append(os.Environ(), "HOME="+s.home, "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 
 	outBytes, err := cmd.Output()
 	var errBytes []byte
@@ -247,7 +252,7 @@ func (s *E2ESuite) devboxInDir(dir string, args ...string) (stdout, stderr strin
 // devboxRun executes devbox command ignoring output (for setup/teardown)
 func (s *E2ESuite) devboxRun(args ...string) {
 	cmd := exec.Command("devbox", args...)
-	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
+	cmd.Env = append(os.Environ(), "HOME="+s.home, "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 	_ = cmd.Run()
 }
 
@@ -255,7 +260,7 @@ func (s *E2ESuite) devboxRun(args ...string) {
 func (s *E2ESuite) devboxRunInDir(dir string, args ...string) {
 	cmd := exec.Command("devbox", args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
+	cmd.Env = append(os.Environ(), "HOME="+s.home, "DEVBOX_TEST_HOSTS_FILE="+s.hostsFile)
 	_ = cmd.Run()
 }
 
