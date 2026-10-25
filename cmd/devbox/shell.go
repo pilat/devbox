@@ -140,13 +140,15 @@ func containerExec(ctx context.Context, containerID string, cmd []string) (stdou
 	done := make(chan error)
 
 	go func() {
-		_, err = stdcopy.StdCopy(&stdout, &stderr, execAttachResp.Reader)
+		_, err := stdcopy.StdCopy(&stdout, &stderr, execAttachResp.Reader)
 		done <- err
 	}()
 
 	select {
-	case <-done:
-		break
+	case err := <-done:
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to copy exec output: %w", err)
+		}
 	case <-ctx.Done():
 		return nil, nil, errors.New("context cancelled")
 	}
