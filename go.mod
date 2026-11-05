@@ -4,18 +4,19 @@ go 1.27.3
 
 require (
 	github.com/compose-spec/compose-go/v2 v2.16.2
-	github.com/docker/cli v29.9.2+incompatible
-	github.com/docker/compose/v5 v5.6.1
+	github.com/docker/cli v29.9.3+incompatible
+	github.com/docker/compose/v5 v5.7.0
 	github.com/jedib0t/go-pretty/v6 v6.8.3
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	golang.org/x/term v0.47.0
 )
 
 require (
+	connectrpc.com/connect v1.19.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20261013165250-51075c6ea6bc // indirect
 	github.com/DefangLabs/secret-detector v0.0.0-20260916192156-3e28d7ed64df // indirect
 	github.com/Microsoft/go-winio v0.6.4 // indirect
@@ -39,6 +40,8 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.10 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
+	github.com/docker/secrets-engine/client v0.2.2 // indirect
+	github.com/docker/secrets-engine/x v0.8.5 // indirect
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/fsnotify/fsevents v0.2.0 // indirect
@@ -110,6 +113,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
